@@ -1,0 +1,75 @@
+# AMPL format
+# Intial Set Up before subproblem solved 
+
+
+# Nodes
+set N := 1 2 3 4 5 6 ;
+
+# Possible Connections
+set L := (1,2) (1,3) (1,4) (1,5) (1,6)
+		 (2,3) (2,4) (2,5) (2,6)
+		 (3,4) (3,5) (3,6)
+		 (4,5) (4,6)
+		 (5,6)
+;
+
+# Budget
+param pi := 90000000;
+
+#Hours in a year
+#Multiply this by eta in objective problem
+param sigma := 8760;
+
+# Max Lines per connection
+param maxLines := 3;
+
+# Cost of each line (Annual)
+param c:=
+1 2	723200		1 3	7337040		1 4	11584800	1 5	3861600		1 6	13129440
+2 3	3861600		2 4	7723200		2 5	5985480		2 6	5792400		3 4	11391720
+3 5	3861600		3 6	9267840		4 5	12164040	4 6	5792400		5 6	11777880
+;
+
+# Capacity of Each Line
+param cap:=
+1 2	100		1 3	100		1 4	80		1 5	100		1 6	70
+2 3	100		2 4	100		2 5	100		2 6	100		3 4	82
+3 5	100		3 6	100		4 5	75		4 6	100		5 6	78
+;
+
+# Generating Costs
+param gencost :=
+1	15		2	0		3	10		4	0		5	0		6	20
+;
+
+#Penalty for Unfufiled Load
+param  shed :=
+1	112.5	2	115		3	120		4	110		5	112		6	0
+;
+
+
+
+
+
+
+#
+#THIS BELOW IS JUST TO TEST
+#Not Used
+#
+
+# Max Supply
+#param genpos :=
+#1	50		2	0		3	165		4	0		5	0		6	448
+#;
+
+# Demand 
+#param dem :=
+#1	58		2	240		3	40		4	60		5	240		6	0
+#;
+
+#param x_star :=
+#1 2	1	1 3	0	1 4	1	1 5	1	1 6 0
+#2 3	1	2 4	1	2 5	0	2 6	0	3 4	0
+#3 5	1	3 6	0	4 5	0	4 6	0	5 6	0
+#;
+
