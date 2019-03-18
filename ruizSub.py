@@ -7,7 +7,7 @@ import ruizC as RC
 ############################################################
 #SubProblem
 
-#Create an abstract model in Pyomo for the Sub Problem
+#Create an abstract subel in Pyomo for the Sub Problem
 #Input is expected to be .dat file
 #Will take x_star (binary) as a parameter
 ############################################################
@@ -15,10 +15,15 @@ import ruizC as RC
 sub = AbstractModel()
 opt = SolverFactory(RC.SOLVER)
 
+###############################################################
+#Parameters and Variables
+###############################################################
 #Parameters
 sub.N = 	Set()						#Nodes
 sub.L = 	Set(within=sub.N*sub.N)		#Lines
 sub.c = 	Param(sub.L)				#cost per line
+sub.pi = Param()						#Budget
+sub.maxLines = Param()					#Max Lines per route
 sub.cap =	Param(sub.L)				#line capacity
 sub.sigma = Param()						#Hours in a year
 sub.demmax = Param(sub.N)				#Maximum possible Demand
@@ -32,7 +37,6 @@ sub.uncD =  Param()						#Uncertainty in Demand
 sub.uncS =  Param()						#Uncertainty in Supply
 sub.x_star = Param(sub.L, domain=NonNegativeIntegers, default=0,
 	mutable = True) 					#Built Lines
-
 sub.conLen = Param()					#Constraints in Primal 
 sub.constraints = RangeSet(1,sub.conLen) #(1, '# of constraints')
 sub.varLen = Param()					#Variables in Primal
@@ -40,7 +44,7 @@ sub.NLen = Param()						#Length of N
 sub.LLen = Param()						#Length of L
 sub.LRange = RangeSet(1,sub.LLen)		#(1, '# of lines')
 
-#B^T Matrix
+#B Matrix
 #Split into parts for each variable
 sub.gen_mu = Param(sub.N*sub.constraints)
 sub.alpha_mu = Param(sub.N*sub.constraints)
@@ -175,6 +179,11 @@ def unc_dem_rule(sub):
 sub.UncDemConstraint = Constraint(rule=unc_dem_rule)
 
 
+#Mu is 0 when z is 1	
+def mu_bigm_rule(sub, i):
+	return sub.mu[i] <= sub.M*(1-sub.z[i]) 
+sub.MuBigM = Constraint(sub.constraints, rule=mu_bigm_rule)
+
 #Lambda Mu Yp Rules
 #############################################
 #Generation
@@ -200,25 +209,21 @@ sub.LamdaMuTranConstraint = Constraint(sub.LRange, rule=lamda_mu_tran_rule)
 #############################################
 
 
-#Mu is 0 when z is 1	
-def mu_bigm_rule(sub, i):
-	return sub.mu[i] <= sub.M*(1-sub.z[i]) 
-sub.MuBigM = Constraint(sub.constraints, rule=mu_bigm_rule)
+
 
  
 
 ##########
 #TO TEST
 ##########
-'''
-isub = sub.create_instance(RC.SUB)
+
+isub = sub.create_instance(RC.DATA)
 results = opt.solve(isub, tee=True)
-#results = opt.solve(isub)
 #isub.pprint()
 results.write()
 
 ##To Print
-
+'''
 for v in isub.component_objects(Var, active=True):
 	print ("Variable",v)
 	varob = getattr(isub, str(v))
