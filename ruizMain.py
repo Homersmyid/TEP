@@ -15,7 +15,7 @@ LB = float("-inf")					#Upper Bound
 UB = float("inf")					#Lower Bound
 
 #Create subproblem
-isub = s.sub.create_instance(RC.SUB)
+isub = s.sub.create_instance(RC.DATA)
 
 #Set x_star in subproblem
 for x in RC.START_X_STAR:
@@ -28,12 +28,12 @@ isub.pprint()
 results.write()
 input()
 	
-for k in range(1,7+1):
+for k in range(1,2+1):
 	print('\n\nk:')
 	print(k)
 	
 	#create master problem			
-	imast = m.mast.create_instance(RC.MAST)
+	imast = m.mod.create_instance(RC.DATA)
 
 	#set demand in master
 	for d in isub.dem:
@@ -55,7 +55,7 @@ for k in range(1,7+1):
 	input()
 	
 	#Create subproblem
-	isub = s.sub.create_instance(RC.SUB)
+	isub = s.sub.create_instance(RC.DATA)
 
 	#Set x_star in sub
 	for xi in imast.x:
