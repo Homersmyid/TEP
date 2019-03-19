@@ -32,10 +32,8 @@ mod.gencost =	Param(mod.N)			#Cost to generate
 mod.shed =  Param(mod.N)				#Load Shedding Cost Per Node
 mod.uncD =  Param()						#Uncertainty in Demand	
 mod.uncS =  Param()						#Uncertainty in Supply
-mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
-	mutable = True) 					#Built Lines
 mod.conLen = Param()					#Constraints in Primal 
-mod.constraints = RangeSet(1,mod.conLen) #(1, '# of constraints')
+mod.constraints = RangeSet(1,mod.conLen) 	#(1, '# of constraints')
 mod.varLen = Param()					#Variables in Primal
 mod.NLen = Param()						#Length of N
 mod.LLen = Param()						#Length of L
@@ -48,17 +46,17 @@ mod.alpha_mu = Param(mod.N*mod.constraints)
 mod.tran_mu = Param(RangeSet(1,mod.LLen)*mod.constraints)
 
 #Parameters that come from subproblem
-mod.dem = Param(mod.N, default=0, mutable = True)		#Demand
+mod.dem = 	 Param(mod.N, default=0, mutable = True)	#Demand
 mod.genpos = Param(mod.N, default=0, mutable = True)	#Maximum Supply
 mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
-	mutable = True) 
+	mutable = True) 									#Built Lines
 
 #Variables
 mod.x 	 = 	Var(mod.L, domain=NonNegativeIntegers)	#Lines Built
-mod.eta = 	Var(domain=NonNegativeReals)	# Eta >= b^t*(yp) for all p
-mod.tran = Var(mod.L, within=Reals) 		#Ammount Transmitted
-mod.gen  =	Var(mod.N, domain=NonNegativeReals)	#Generation Supply
-mod.alpha = Var(mod.N, domain=NonNegativeReals)	#Unfilled Demand
+mod.eta = 	Var(domain=NonNegativeReals)	#Eta >= b^t*(yp) for all p
+mod.tran = Var(mod.L, within=Reals) 				#Ammount Transmitted
+mod.gen  =	Var(mod.N, domain=NonNegativeReals)		#Generation Supply
+mod.alpha = Var(mod.N, domain=NonNegativeReals)		#Unfilled Demand
 
 ###############################################################
 #Functions
@@ -69,7 +67,7 @@ mod.alpha = Var(mod.N, domain=NonNegativeReals)	#Unfilled Demand
 def obj_expression(mod):
 	return (sum(mod.c[i,j] * mod.x[i,j] for i,j in mod.L)
 		+ mod.sigma * mod.eta)
-mod.OBJ = Objective(rule=obj_expression)
+mod.Obj = Objective(rule=obj_expression)
 
 
 #Budget Constraint (on power line building)
@@ -129,8 +127,8 @@ def flow_rule(mod, i):
 mod.FlowConstraint = Constraint(mod.N, rule=flow_rule)
 
 
-# Hourly Costs are kept are seperate "eta" for convience
-#	Eta >= b^t*(y)
+# Hourly Costs 
+#	Eta >= b^t*(y) for all yp
 #Costs are :
 #	1) generation costs
 #	2) penalty for unmet demand
@@ -146,13 +144,13 @@ mod.EtaConstraint = Constraint(rule=eta_rule)
 #TO TEST
 ##########
 
-
+'''
 imast = mod.create_instance(RC.DATA)	
 results = opt.solve(imast, tee=True)
 #imast.pprint()
 results.write()
 
-'''
+
 #To Print
 for v in imast.component_objects(Var, active=True):
 	print ("Variable",v)
