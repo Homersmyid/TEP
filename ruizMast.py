@@ -2,6 +2,7 @@
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
 import ruizC as RC
+import math
 
 ###############################################################
 #Master Problem Abstract Model
@@ -11,10 +12,12 @@ import ruizC as RC
 
 mod = AbstractModel()					#name of model
 opt = SolverFactory(RC.SOLVER)			#solver to use
+mod.con = ConstraintList()
 
 ###############################################################
 #Parameters and Variables
 ###############################################################
+
 #Parameters
 mod.N = 	Set()						#Nodes
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
@@ -38,12 +41,9 @@ mod.varLen = Param()					#Variables in Primal
 mod.NLen = Param()						#Length of N
 mod.LLen = Param()						#Length of L
 mod.LRange = RangeSet(1,mod.LLen)		#(1, '# of lines')
-
-#B Matrix
-#Split into parts for each variable
-mod.gen_mu = Param(mod.N*mod.constraints)
-mod.alpha_mu = Param(mod.N*mod.constraints)
-mod.tran_mu = Param(RangeSet(1,mod.LLen)*mod.constraints)
+mod.b =		Param(mod.L)				#Phyiscs on each line
+mod.Mtheta = Param()					#M to use for theta constraint
+mod.ref	=	Param(mod.N)				#Reference Theta
 
 #Parameters that come from subproblem
 mod.dem = 	 Param(mod.N, default=0, mutable = True)	#Demand
@@ -51,12 +51,20 @@ mod.genpos = Param(mod.N, default=0, mutable = True)	#Maximum Supply
 mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
 	mutable = True) 									#Built Lines
 
+###############################################################
+#Variables
+###############################################################
+
 #Variables
 mod.x 	 = 	Var(mod.L, domain=NonNegativeIntegers)	#Lines Built
 mod.eta = 	Var(domain=NonNegativeReals)	#Eta >= b^t*(yp) for all p
 mod.tran = Var(mod.L, within=Reals) 				#Ammount Transmitted
 mod.gen  =	Var(mod.N, domain=NonNegativeReals)		#Generation Supply
 mod.alpha = Var(mod.N, domain=NonNegativeReals)		#Unfilled Demand
+mod.theta = Var(mod.N,bounds=(-math.pi, math.pi))	#Angle in [-pi,pi]
+mod.route_on =	Var(mod.L, domain=Binary)			#If route used 
+	#Needed for when number of lines per route is >= 1
+
 
 ###############################################################
 #Functions
@@ -92,12 +100,13 @@ mod.MaxLinesRuleConstraint = Constraint(mod.L, rule=max_lines_rule)
 
 #Transmisson Capacity
 #	abs(transmission) <= capacity
-def cap_rule(mod, i, j):
+def cap_rule1(mod, i, j):
 	return mod.tran[i,j] <=  mod.cap[i,j] * mod.x[i,j]
-mod.CapConstraint = Constraint(mod.L, rule=cap_rule)
+mod.CapConstraint1 = Constraint(mod.L, rule=cap_rule1)
 def cap_rule2(mod, i, j):
 	return -mod.tran[i,j] <=  mod.cap[i,j]* mod.x[i,j]
 mod.CapConstraint2 = Constraint(mod.L, rule=cap_rule2)
+
 
 #Supply min and max
 #	Yp <= possible_generation
@@ -138,6 +147,36 @@ def eta_rule(mod):
 mod.EtaConstraint = Constraint(rule=eta_rule)
 
 
+# Route Rule
+# To see what routes are activated, route_on is binary
+# MaxLines * Route_on >= x
+def route_rule(mod, i,j):
+	return (mod.maxLines * mod.route_on[i,j] >= mod.x[i,j])
+mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
+
+
+# Theta Rules
+def theta_rule1(mod,i,j):
+	return (mod.tran[i,j] - mod.b[i,j] * (mod.theta[i] - mod.theta[j])
+		<= (1 - mod.route_on[i,j]) * mod.Mtheta)
+mod.ThetaConstraint1 = Constraint(mod.L, rule=theta_rule1)
+def theta_rule2(mod,i,j):
+	return (-(mod.tran[i,j] - mod.b[i,j] * (mod.theta[i] - mod.theta[j]))
+		<= (1 - mod.route_on[i,j]) * mod.Mtheta)
+mod.ThetaConstraint2 = Constraint(mod.L, rule=theta_rule2)
+
+######################
+#NEEDED? will this just slow donw program
+
+# Set a reference theta to zero 
+# |theta| <= ref
+def ref_rule1(mod,i):
+	return (mod.theta[i] <= mod.ref[i]) 
+mod.RefConstraint1 = Constraint(mod.N, rule=ref_rule1)
+def ref_rule2(mod,i):
+	return (-mod.theta[i] <= mod.ref[i]) 
+mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
+#######################
 
 
 ##########
@@ -145,7 +184,22 @@ mod.EtaConstraint = Constraint(rule=eta_rule)
 ##########
 
 '''
-imast = mod.create_instance(RC.DATA)	
+imast = mod.create_instance(RC.DATA)
+
+#Set x_star in step zero
+for x in RC.START_X_STAR:
+	imast.x_star[x[0], x[1]] = x[2]
+
+#set demand in master
+list1 = [200, 0,0, 150, 100, 200]
+for d in range(1,7):
+	imast.dem[d] = list1[d-1]
+
+#set possible generation in master
+list2 = [300, 250, 400, 0, 300, 150]
+for d in range(1,7):
+	imast.genpos[d] = list2[d-1]
+	
 results = opt.solve(imast, tee=True)
 #imast.pprint()
 results.write()
@@ -157,5 +211,4 @@ for v in imast.component_objects(Var, active=True):
 	varob = getattr(imast, str(v))
 	for index in varob:
 		print ("   ",index, varob[index].value) 
-
 '''
