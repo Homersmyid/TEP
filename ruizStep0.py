@@ -40,6 +40,9 @@ mod.varLen = Param()					#Variables in Primal
 mod.NLen = Param()						#Length of N
 mod.LLen = Param()						#Length of L
 mod.LRange = RangeSet(1,mod.LLen)		#(1, '# of lines')
+mod.b =		Param(mod.L)				#Phyiscs on each line
+mod.Mtheta = Param()					#M to use for theta constraint
+mod.ref	=	Param(mod.N)				#Reference Theta
 
 #B Matrix
 #Split into parts for each variable

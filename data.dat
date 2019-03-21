@@ -1,10 +1,16 @@
 # AMPL format 
 
+#######################
 #WHAT SHOULD THIS BE SET AS?
-#
-#
+
+
 # Max Capacity to use in M * x > trans
 param M := 90000;
+
+# M to use in theta calculations
+param Mtheta := 90000;
+
+#######################
 
 # Nodes
 set N := 1 2 3 4 5 6 ;
@@ -21,7 +27,7 @@ set L := (1,2) (1,3) (1,4) (1,5) (1,6)
 param LLen := 15;
 
 # Budget
-param pi := 90000000;
+param pi := 40000000;
 
 #Size of Lamda and Mu Vectors (number of constraints in primal)
 param conLen:= 78;	
@@ -30,7 +36,7 @@ param conLen:= 78;
 param uncD := 1;
 
 #Uncertainty in Supply
-param uncS := 0.4;
+param uncS := 1;
 
 #Hours in a year
 #Multiply this by eta in objective problem
@@ -41,7 +47,7 @@ param maxLines := 3;
 
 # Cost of each line (Annual)
 param c:=
-1 2	723200		1 3	7337040		1 4	11584800	1 5	3861600		1 6	13129440
+1 2	7723200		1 3	7337040		1 4	11584800	1 5	3861600		1 6	13129440
 2 3	3861600		2 4	7723200		2 5	5985480		2 6	5792400		3 4	11391720
 3 5	3861600		3 6	9267840		4 5	12164040	4 6	5792400		5 6	11777880
 ;
@@ -53,14 +59,21 @@ param cap:=
 3 5	100		3 6	100		4 5	75		4 6	100		5 6	78
 ;
 
+#Reactance of each line
+param b:=
+1 2	0.4		1 3 0.38	1 4	0.6		1 5	0.2		1 6	0.68
+2 3	0.2		2 4	0.4		2 5	0.31	2 6	0.3		3 4	0.59
+3 5	0.2		3 6	0.48	4 5	0.63	4 6	0.3		5 6	0.61
+;
+
 # Max Demand
 param demmax :=
-1	96		2	288		3	48		4	192		5	288		6	0
+1	300		2	250		3	400		4	0		5	300		6	150
 ;
 
 # Min Demand
 param demmin :=
-1	64		2	192		3	32		4	128		5	192		6	0
+1	300		2	250		3	400		4	0		5	300		6	150
 ;
 
 # Max Supply
@@ -84,6 +97,11 @@ param gencost :=
 #Penalty for Unfufiled Load
 param  shed :=
 1	112.5	2	115		3	120		4	110		5	112		6	0
+;
+
+param ref :=
+1	0					2	3.141592653589793	3	3.141592653589793
+4	3.141592653589793	5	3.141592653589793	6	3.141592653589793		
 ;
 
 param gen_mu :

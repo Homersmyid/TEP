@@ -2,6 +2,7 @@
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
 import ruizC as RC
+import math
 
 
 ############################################################
@@ -16,8 +17,9 @@ mod = AbstractModel()
 opt = SolverFactory(RC.SOLVER)
 
 ###############################################################
-#Parameters and Variables
+#Parameters
 ###############################################################
+
 #Parameters
 mod.N = 	Set()						#Nodes
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
@@ -41,16 +43,24 @@ mod.varLen = Param()					#Variables in Primal
 mod.NLen = Param()						#Length of N
 mod.LLen = Param()						#Length of L
 mod.LRange = RangeSet(1,mod.LLen)		#(1, '# of lines')
-
-#Parameters that come from Master
-mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
-	mutable = True) 					#Built Lines
+mod.b =		Param(mod.L)				#Phyiscs on each line
+mod.Mtheta = Param()					#M to use for theta constraint
+mod.ref	=	Param(mod.N)				#Reference Theta
 
 #B Matrix
 #Split into parts for each variable
 mod.gen_mu = Param(mod.N*mod.constraints)
 mod.alpha_mu = Param(mod.N*mod.constraints)
 mod.tran_mu = Param(RangeSet(1,mod.LLen)*mod.constraints)
+
+#Parameters that come from Master
+mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
+	mutable = True) 					#Built Lines
+
+
+###############################################################
+#Variables
+###############################################################
 
 #Variables
 mod.tran = Var(mod.L, within=Reals) 			#Ammount Transmitted
