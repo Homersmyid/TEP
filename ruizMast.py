@@ -14,16 +14,20 @@ opt = SolverFactory(RC.SOLVER)			#solver to use
 mod.con = ConstraintList()
 
 ###############################################################
-#Parameters and Variables
+#Parameters and Sets
 ###############################################################
 
-#Parameters
+#Sets
 mod.N = 	Set()						#Nodes
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
-mod.c = 	Param(mod.L)				#cost per line
+mod.P = 	Set(initialize=[])			#Subproblem Solves
+	#Updated every new run of the master
+
+#Parameters
+mod.c = 	Param(mod.L)				#Cost per line
 mod.pi = Param()						#Budget
 mod.maxLines = Param()					#Max Lines per route
-mod.cap =	Param(mod.L)				#line capacity
+mod.cap =	Param(mod.L)				#Line capacity
 mod.sigma = Param()						#Hours in a year
 mod.demmax = Param(mod.N)				#Maximum possible Demand
 mod.demmin = Param(mod.N)				#Minimum possible Demand
@@ -57,7 +61,7 @@ mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
 #Variables
 mod.x 	 = 	Var(mod.L, domain=NonNegativeIntegers)	#Lines Built
 mod.eta = 	Var(domain=NonNegativeReals)	#Eta >= b^t*(yp) for all p
-mod.tran = Var(mod.L, within=Reals) 				#Ammount Transmitted
+mod.tran = Var(mod. P, mod.L, within=Reals) 		#Ammount Transmitted
 mod.gen  =	Var(mod.N, domain=NonNegativeReals)		#Generation Supply
 mod.alpha = Var(mod.N, domain=NonNegativeReals)		#Unfilled Demand
 mod.theta = Var(mod.N,bounds=(-math.pi, math.pi))	#Angle in [-pi,pi]
@@ -112,7 +116,7 @@ mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
 
 
 
-
+'''
 #Transmisson Capacity
 #	abs(transmission) <= capacity
 def cap_rule1(mod, i, j):
@@ -170,7 +174,7 @@ def ref_rule2(mod,i):
 	return (-mod.theta[i] <= mod.ref[i]) 
 mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
 #######################
-
+'''
 
 ##########
 #TO TEST

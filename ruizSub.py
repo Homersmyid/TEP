@@ -17,16 +17,18 @@ mod = AbstractModel()
 opt = SolverFactory(RC.SOLVER)
 
 ###############################################################
-#Parameters
+#Parameters and Sets
 ###############################################################
 
-#Parameters
+#Sets
 mod.N = 	Set()						#Nodes
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
-mod.c = 	Param(mod.L)				#cost per line
+
+#Parameters
+mod.c = 	Param(mod.L)				#Cost per line
 mod.pi = Param()						#Budget
 mod.maxLines = Param()					#Max Lines per route
-mod.cap =	Param(mod.L)				#line capacity
+mod.cap =	Param(mod.L)				#Line capacity
 mod.sigma = Param()						#Hours in a year
 mod.demmax = Param(mod.N)				#Maximum possible Demand
 mod.demmin = Param(mod.N)				#Minimum possible Demand
@@ -38,7 +40,7 @@ mod.shed =  Param(mod.N)				#Load Shedding Cost Per Node
 mod.uncD =  Param()						#Uncertainty in Demand	
 mod.uncS =  Param()						#Uncertainty in Supply
 mod.conLen = Param()					#Constraints in Primal 
-mod.constraints = RangeSet(1,mod.conLen) #(1, '# of constraints')
+mod.constraints = RangeSet(1,mod.conLen) 	#(1, '# of constraints')
 mod.varLen = Param()					#Variables in Primal
 mod.NLen = Param()						#Length of N
 mod.LLen = Param()						#Length of L
