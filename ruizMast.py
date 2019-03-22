@@ -6,7 +6,6 @@ import math
 
 ###############################################################
 #Master Problem Abstract Model
-
 #Create an abstract model in Pyomo for the Master Problem
 ###############################################################
 
@@ -98,6 +97,22 @@ def max_lines_rule(mod, i, j):
 mod.MaxLinesRuleConstraint = Constraint(mod.L, rule=max_lines_rule)
 
 
+# Route Rule
+# To see what routes are activated, route_on is binary
+# MaxLines * Route_on >= x
+def route_rule(mod, i,j):
+	return (mod.maxLines * mod.route_on[i,j] >= mod.x[i,j])
+mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
+
+
+
+
+
+
+
+
+
+
 #Transmisson Capacity
 #	abs(transmission) <= capacity
 def cap_rule1(mod, i, j):
@@ -106,20 +121,6 @@ mod.CapConstraint1 = Constraint(mod.L, rule=cap_rule1)
 def cap_rule2(mod, i, j):
 	return -mod.tran[i,j] <=  mod.cap[i,j]* mod.x[i,j]
 mod.CapConstraint2 = Constraint(mod.L, rule=cap_rule2)
-
-
-#Supply min and max
-#	Yp <= possible_generation
-def gen_rule(mod, i):
-	return (mod.gen[i] <= mod.genpos[i])
-mod.GenConstraint = Constraint(mod.N, rule=gen_rule)
-
-
-#Unmet Demand is less than Demand
-#	alpha("unmet demand") <= demand
-def alpha_rule(mod,i):
-	return mod.alpha[i] <= mod.dem[i]
-mod.AlphaConstraint = Constraint(mod.N, rule=alpha_rule)
 
 
 #Flow (Supply and Demand)
@@ -136,7 +137,7 @@ def flow_rule(mod, i):
 mod.FlowConstraint = Constraint(mod.N, rule=flow_rule)
 
 
-# Hourly Costs 
+# Eta Rule (Hourly Costs)
 #	Eta >= b^t*(y) for all yp
 #Costs are :
 #	1) generation costs
@@ -145,14 +146,6 @@ def eta_rule(mod):
 	return (sum(mod.gencost[i] * mod.gen[i] for i in mod.N) 
 		 +sum(mod.shed[i] * mod.alpha[i] for i in mod.N) <= mod.eta)
 mod.EtaConstraint = Constraint(rule=eta_rule)
-
-
-# Route Rule
-# To see what routes are activated, route_on is binary
-# MaxLines * Route_on >= x
-def route_rule(mod, i,j):
-	return (mod.maxLines * mod.route_on[i,j] >= mod.x[i,j])
-mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
 
 
 # Theta Rules
@@ -212,3 +205,21 @@ for v in imast.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value) 
 '''
+
+###############################################################
+#Functions
+###############################################################
+
+def mast_func(imast, subdem, subgenpos):
+
+	#Supply min and max
+	#	Gen <= (Possible_Generation)
+	for i in subgenpos:
+		imast.con.add(imast.gen[i] <= value(subgenpos[i]))
+		
+	#Unmet Demand is less than Demand
+	#	Alpha("unmet demand") <= demand
+	for i in subdem:
+		imast.con.add(imast.alpha[i] <= value(subdem[i]))
+	
+
