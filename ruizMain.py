@@ -3,15 +3,13 @@
 from __future__ import division
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
-import numpy as np
 import ruizC as RC
 import ruizSub as s
 import ruizMast as m
 import ruizStep0 as szero
 
-STOP = 1;							#How many iterations to quit after
+STOP = 2;							#How many iterations to quit after
 startlines = True					#If possible lines at start
-k = 0								#Iterations
 LB = float("-inf")					#Upper Bound
 UB = float("inf")					#Lower Bound
 
@@ -98,7 +96,7 @@ for k in range(1,STOP+1):
 	if k == 1:			
 		imast = m.mod.create_instance(RC.DATA)
 
-	m.mast_func(imast, isub.dem, isub.genpos, k)
+	m.mast_func(imast, isub.dem, isub.genpos, RC.START_X_STAR, k)
 
 	#solve master problem
 	mresults = s.opt.solve(imast)

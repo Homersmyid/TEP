@@ -58,18 +58,28 @@ mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
 ###############################################################
 
 #Variables
-mod.x 	 = 	Var(mod.L, domain=NonNegativeIntegers)	#Lines Built
-mod.eta = 	Var(domain=NonNegativeReals)	#Eta >= b^t*(yp) for all p
-mod.route_on =	Var(mod.L, domain=Binary)			#If route used 
-	#Needed for when number of lines per route is > 1
+
+#Lines Built on each route (Integer)
+mod.x 	 = 	Var(mod.L, domain=NonNegativeIntegers, initialize=0)
+
+#Worst Case Hourly Costs (Generation + Load Shed)
+mod.eta = 	Var(domain=NonNegativeReals, initialize=0)
+
+#If route used (Bianary). Needed for when the lines per route is > 1
+mod.route_on =	Var(mod.L, domain=Binary, initialize=0)			
+
 	
-#Variables that grow each subproblem solve
+#Variables that grow each subproblem solve (P = subproblem solves)
+
 #Ammount Transmitted
 mod.tran = Var(mod. P, mod.L, within=Reals, initialize=0)
+
 #Generation Supply	
-mod.gen  =	Var(mod. P, mod.N, domain=NonNegativeReals, initialize=0)	
+mod.gen  =	Var(mod. P, mod.N, domain=NonNegativeReals, initialize=0)
+	
 #Unfilled Demand	
 mod.unmet = Var(mod. P, mod.N, domain=NonNegativeReals, initialize=0)
+
 #Angle in [-pi,pi]	
 mod.theta = Var(mod. P, mod.N,bounds=(-math.pi, math.pi), initialize=0)	
 
@@ -81,7 +91,7 @@ mod.theta = Var(mod. P, mod.N,bounds=(-math.pi, math.pi), initialize=0)
 # 	min [c^t*x + sigma * eta]
 def obj_expression(mod):
 	return (sum(mod.c[i,j] * mod.x[i,j] for i,j in mod.L)
-		+ mod.sigma * mod.eta)
+		+ mod.eta)
 mod.Obj = Objective(rule=obj_expression)
 
 
@@ -137,28 +147,31 @@ mod.EtaConstraint = ConstraintList()
 #Function
 ###############################################################
 
-def mast_func(imast, subdem, subgenpos, k):
+def mast_func(imast, subdem, subgenpos, in_x_star, k):
 
 	#Add to set P that there is a new subproblem solved
 	imast.P.add(k)
 	
 	print("...")
-	
-	
 	#Set demand in master
-	for d in subdem:
-		imast.dem[d] = value(subdem[d])
-		print(imast.dem[d].value)
+	for i in subdem:
+		imast.dem[i] = value(subdem[i])
+		print(imast.dem[i].value)
 
 	#Set possible generation in master
-	for g in subgenpos:
-		imast.genpos[g] = value(subgenpos[g])
-		print(imast.genpos[d].value)
-
+	for i in subgenpos:
+		imast.genpos[i] = value(subgenpos[i])
+		
+		
+		print('a')
+		print(subgenpos[i].value)
+		print('b')	
+		print(imast.genpos[i].value)
 	print("***")
 
+
 	#Set x_star
-	for x in RC.START_X_STAR:
+	for x in in_x_star:
 		imast.x_star[x[0], x[1]] = x[2]
 
 	#Supply min and max
@@ -192,7 +205,7 @@ def mast_func(imast, subdem, subgenpos, k):
 			if (j == i))
 		imast.FlowConstraint.add( flowcol - flowrow
 			+ imast.gen[k,i] - imast.dem[i] >= -imast.unmet[k,i])
-
+ 
 	# Theta Rules
 	# Theta is the angle at each node
 	# For each line from i to j:
@@ -204,14 +217,15 @@ def mast_func(imast, subdem, subgenpos, k):
 		imast.ThetaConstraintNeg.add ( -imast.tran[k,i,j]
 			+ imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
 			<= (1 - imast.route_on[i,j]) * imast.Mtheta)
-
+ 
 
 	# Eta Rule (Hourly Costs)
-	#	Eta >= (Generation_Costs) + (Load_Shedding)
-		imast.EtaConstraint.add(
-			sum(imast.gencost[i] * imast.gen[k,i] for i in imast.N) 
-			+ sum(imast.shed[i] * imast.unmet[k,i] for i in imast.N)
-			<= imast.eta)
+	#	Eta >= sigma * [(Generation_Costs) + (Load_Shedding)]
+	# Sigma is hours in a year
+	imast.EtaConstraint.add( imast.sigma * 
+		(sum(imast.gencost[i] * imast.gen[k,i] for i in imast.N) 
+		+ sum(imast.shed[i] * imast.unmet[k,i] for i in imast.N))
+		<= imast.eta)
 
 		
 	'''
