@@ -25,38 +25,38 @@ mod.N = 	Set()						#Nodes
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
 
 #Parameters
-mod.c = 	Param(mod.L)				#Cost per line
-mod.pi = Param()						#Budget
-mod.maxLines = Param()					#Max Lines per route
-mod.cap =	Param(mod.L)				#Line capacity
-mod.sigma = Param()						#Hours in a year
-mod.demmax = Param(mod.N)				#Maximum possible Demand
-mod.demmin = Param(mod.N)				#Minimum possible Demand
-mod.supmax = Param(mod.N)				#Maximum possible Supply
-mod.supmin = Param(mod.N)				#Minimum possible Supply
-mod.M	=	Param()						#Max M for Fourtuny-Amat
+mod.c = 		Param(mod.L)			#Cost per line
+mod.pi = 		Param()					#Budget
+mod.maxLines =	Param()					#Max Lines per route
+mod.cap =		Param(mod.L)			#Line capacity
+mod.sigma = 	Param()					#Hours in a year
+mod.demmax = 	Param(mod.N)			#Maximum possible Demand
+mod.demmin = 	Param(mod.N)			#Minimum possible Demand
+mod.supmax = 	Param(mod.N)			#Maximum possible Supply
+mod.supmin = 	Param(mod.N)			#Minimum possible Supply
+mod.M	=		Param()					#Max M for Fourtuny-Amat
 mod.gencost =	Param(mod.N)			#Cost to generate	
-mod.shed =  Param(mod.N)				#Load Shedding Cost Per Node
-mod.uncD =  Param()						#Uncertainty in Demand	
-mod.uncS =  Param()						#Uncertainty in Supply
-mod.conLen = Param()					#Constraints in Primal 
+mod.shed =  	Param(mod.N)			#Load Shedding Cost Per Node
+mod.uncD =  	Param()					#Uncertainty in Demand	
+mod.uncS =  	Param()					#Uncertainty in Supply
+mod.conLen = 	Param()					#Constraints in Primal 
 mod.constraints = RangeSet(1,mod.conLen) 	#(1, '# of constraints')
-mod.varLen = Param()					#Variables in Primal
-mod.NLen = Param()						#Length of N
-mod.LLen = Param()						#Length of L
+mod.varLen = 	Param()					#Variables in Primal
+mod.NLen = 		Param()					#Length of N
+mod.LLen = 		Param()					#Length of L
 mod.LRange = RangeSet(1,mod.LLen)		#(1, '# of lines')
-mod.b =		Param(mod.L)				#Phyiscs on each line
-mod.Mtheta = Param()					#M to use for theta constraint
-mod.ref	=	Param(mod.N)				#Reference Theta
+mod.b =			Param(mod.L)			#Phyiscs on each line
+mod.Mtheta = 	Param()					#M to use for theta constraint
+mod.ref	=		Param(mod.N)			#Reference Theta
 
 #B Matrix
 #Split into parts for each variable
-mod.gen_mu = Param(mod.N*mod.constraints)
-mod.alpha_mu = Param(mod.N*mod.constraints)
-mod.tran_mu = Param(RangeSet(1,mod.LLen)*mod.constraints)
+mod.gen_mu = 	Param(mod.N*mod.constraints)
+mod.alpha_mu = 	Param(mod.N*mod.constraints)
+mod.tran_mu = 	Param(RangeSet(1,mod.LLen)*mod.constraints)
 
 #Parameters that come from Master
-mod.x_star = Param(mod.L, domain=NonNegativeIntegers, default=0,
+mod.x_star = 	Param(mod.L, domain=NonNegativeIntegers, default=0,
 	mutable = True) 					#Built Lines
 
 
@@ -72,7 +72,7 @@ mod.alpha = Var(mod.N, domain=NonNegativeReals)	#Unfilled Demand
 mod.dem  =	Var(mod.N, domain=NonNegativeReals)	#Demand
 mod.lamda = Var(mod.constraints)				#Lamda Free
 mod.mu	=	Var(mod.constraints, domain=NonNegativeReals)	#Mu >= 0
-mod.z	=	Var(mod.constraints, domain=Binary)		#For Slackness
+mod.z	=	Var(mod.constraints, domain=Binary)	#For Slackness
 
 #############################################
 #Functions
