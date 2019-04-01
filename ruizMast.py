@@ -126,9 +126,8 @@ mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
 ###############################################################
 #Expanding Constraints
 
-#A copy of these will be added for each new run of the master
+# A copy of these will be added for each new run of the master
 ###############################################################
-
 mod.GenConstraint = ConstraintList()
 mod.UnmetDemConstraint = ConstraintList()
 mod.CapConstraintPos = ConstraintList()
@@ -145,6 +144,19 @@ mod.EtaConstraint = ConstraintList()
 
 ###############################################################
 #Function
+# mast_func(imast, subdem, subgenpos, in_x_star, k)
+
+# Input:imast = 		Pointer to the master problem
+#		subdem =		Demand found in last subproblem solve
+#		subgenpos = 	Max Generation from last subproblem solve
+#		in_x_start =	Prexisting Lines
+#		k =				How many subproblem solves so far
+#
+# Output: Makes changes in the "imast" function
+#
+# This function adds a new series of constraints based on the
+# generation and supply level found from the previous subproblem
+# solve. 
 ###############################################################
 
 def mast_func(imast, subdem, subgenpos, in_x_star, k):
@@ -152,23 +164,13 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 	#Add to set P that there is a new subproblem solved
 	imast.P.add(k)
 	
-	print("...")
 	#Set demand in master
 	for i in subdem:
 		imast.dem[i] = value(subdem[i])
-		print(imast.dem[i].value)
 
 	#Set possible generation in master
 	for i in subgenpos:
 		imast.genpos[i] = value(subgenpos[i])
-		
-		
-		print('a')
-		print(subgenpos[i].value)
-		print('b')	
-		print(imast.genpos[i].value)
-	print("***")
-
 
 	#Set x_star
 	for x in in_x_star:
@@ -191,7 +193,7 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 		imast.CapConstraintPos.add( imast.tran[k,i]
 			<=  imast.cap[i] * imast.x[i])			
 		imast.CapConstraintNeg.add( -imast.tran[k,i]
-		<=  imast.cap[i] * imast.x[i])
+			<=  imast.cap[i] * imast.x[i])
 
 
 	#Flow (Supply and Demand)

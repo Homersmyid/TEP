@@ -49,6 +49,12 @@ mod.b =			Param(mod.L)			#Phyiscs on each line
 mod.Mtheta = 	Param()					#M to use for theta constraint
 mod.ref	=		Param(mod.N)			#Reference Theta
 
+#B Matrix
+#Split into parts for each variable
+mod.gen_mu = 	Param(mod.N*mod.constraints)
+mod.alpha_mu = 	Param(mod.N*mod.constraints)
+mod.tran_mu = 	Param(RangeSet(1,mod.LLen)*mod.constraints)
+
 #Parameters that come from Master
 mod.x_star = 	Param(mod.L, domain=NonNegativeIntegers, default=0,
 	mutable = True) 					#Built Lines
@@ -59,41 +65,19 @@ mod.x_star = 	Param(mod.L, domain=NonNegativeIntegers, default=0,
 ###############################################################
 
 #Variables
-mod.tran = 	Var(mod.L, within=Reals) 			#Ammount Transmitted
+mod.tran = Var(mod.L, within=Reals) 			#Ammount Transmitted
 mod.gen  =	Var(mod.N, domain=NonNegativeReals)	#Generation
 mod.genpos = Var(mod.N, domain=NonNegativeReals)#Max Possible Generation
 mod.unmet = Var(mod.N, domain=NonNegativeReals)	#Unfilled Demand
 mod.dem  =	Var(mod.N, domain=NonNegativeReals)	#Demand
-
-#Angle in [-pi,pi]
-mod.theta = Var(mod.N,bounds=(-math.pi, math.pi), initialize=0)
-
-#If route used (Bianary). Needed for when the lines per route is > 1
-mod.route_on =	Var(mod.L, domain=Binary, initialize=0)		
-
-#Dual Variables
-mod.genmax_dual	=	Var(mod.N, domain=NonNegativeReals) #[Phi^(E.max)]
-mod.genmin_dual	=	Var(mod.N, domain=NonNegativeReals) #[Phi^(E.min)]
-mod.unmetmax_dual = Var(mod.N, domain=NonNegativeReals) #[Phi^(D.max)]
-mod.unmetmin_dual = Var(mod.N, domain=NonNegativeReals) #[Phi^(D.min)]
-mod.thetamax_dual = Var(mod.N, domain=NonNegativeReals) #[Phi^(N.max)]
-mod.thetamin_dual = Var(mod.N, domain=NonNegativeReals) #[Phi^(N.min)]
-mod.capmax_dual = 	Var(mod.L, domain=NonNegativeReals) #[Phi^(L.max)]
-mod.capmin_dual = 	Var(mod.L, domain=NonNegativeReals) #[Phi^(L.min)]
-mod.flow_dual	=	Var(mod.L, domain=NonNegativeReals) #[Lambda]
-	#Lamda is the only dual for an equality, thus no complementarity
-
+mod.lamda = Var(mod.constraints)				#Lamda Free
+mod.mu	=	Var(mod.constraints, domain=NonNegativeReals)	#Mu >= 0
 
 #Binary Variables for Complementary Condition Linearization
-mod.z_genmax	=	Var(mod.N, domain=Binary)	#For Generation Max
-mod.z_genmin	=	Var(mod.N, domain=Binary)	#For Generation Min
-mod.z_unmetmax	=	Var(mod.N, domain=Binary)	#For Unmet Demand Max
-mod.z_unmetmin	=	Var(mod.N, domain=Binary)	#For Unmet Demand Min
-mod.z_thetamax	=	Var(mod.N, domain=Binary)	#For Theta Max 
-mod.z_thetamin	=	Var(mod.N, domain=Binary)	#For Theta Min
-mod.z_capmax	=	Var(mod.L, domain=Binary)	#For Capacity Max
-mod.z_capmin	=	Var(mod.L, domain=Binary)	#For Capacity Min
+mod.z_unmet	=	Var(mod.N, domain=Binary)	#For Unmet Demand
 
+#Angle in [-pi,pi]
+mod.theta = Var(mod.N,bounds=(-math.pi, math.pi), initialize=0)	
 
 #############################################
 #Functions
@@ -108,16 +92,7 @@ def obj_expression(mod):
 mod.Obj = Objective(rule=obj_expression, sense = maximize)
 
 
-# Route Rule
-# To see what routes are activated, route_on is binary
-# MaxLines * Route_on >= x
-def route_rule(mod, i,j):
-	return (mod.maxLines * mod.route_on[i,j] >= mod.x_star[i,j])
-mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
-
-##############################################################
-
-#GenPos Min and Max
+#GenPos min and max
 # Gen_pos is generation possible at a node
 #	(Generation) <= possible_gen <= gen_max
 def max_genpos_rule(mod, i):
@@ -126,31 +101,20 @@ mod.MaxGenPosConstraint = Constraint(mod.N, rule=max_genpos_rule)
 def min_genpos_rule(mod, i):
 	return (mod.genpos[i] >= mod.supmin[i])
 mod.MinGenPosConstraint = Constraint(mod.N, rule=min_genpos_rule)
+
 	
 #Generation Max
 # Genation is the decision variable being minimized by the agent
 # Generation <= Generation Possible
 def max_gen_rule(mod, i):
 	return (mod.gen[i] <= mod.genpos[i])
-mod.MaxGenConstraint = Constraint(mod.N, rule=max_gen_rule)
+mod.MaxSupConstraint = Constraint(mod.N, rule=max_gen_rule)
 
-#Generation Max Dual	[Phi^(E.max)]
-def gen_rule_max_dual1(mod,i):
-	return  mod.genpos[i] - mod.gen[i] <= (mod.M * mod.z_genmax[i])
-mod.GenMaxConstraintDual1 = Constraint(mod.N, rule=gen_rule_max_dual1)
-def gen_rule_max_dual2(mod,i):
-	return mod.genmax_dual[i] <= (mod.M * (1 - mod.z_genmax[i]))
-mod.GenMaxConstraintDual2 = Constraint(mod.N, rule=gen_rule_max_dual2)
+#Generation Dual	[Phi^(E.min), Phi^(E.max)]
+#
+#
+#
 
-#Generation Min Dual	[Phi^(E.min)]
-def gen_rule_min_dual1(mod,i):
-	return mod.gen[i] <= mod.M * mod.z_genmin[i]
-mod.GenMinConstraintDual1 = Constraint(mod.N, rule=gen_rule_min_dual1)
-def gen_rule_min_dual2(mod,i):
-	return mod.genmin_dual[i] <= (mod.M * (1 - mod.z_genmin[i]))
-mod.GenMinConstraintDual2 = Constraint(mod.N, rule=gen_rule_min_dual2)
-
-##############################################################
 
 #Demand Min and Max
 #	demand_min <= (Demand) <= demand_max
@@ -168,25 +132,11 @@ def unmet_rule(mod,i):
 	return mod.unmet[i] <= mod.dem[i]
 mod.UnmetConstraint = Constraint(mod.N, rule=unmet_rule)
 
+#Unmet Demand Dual 	[Phi^(D.min), Phi^(D.max)]
+def unmet_ruleZM(mod,i):
+	return mod.dem[i] - mod.unmet[i] <= mod.M * mod.z[i]
+mod.UnmetConstraintZM2 = Constraint(mod.N, rule=unmet_ruleZM)
 
-#Unmet Demand Max Dual 	[Phi^(D.max)]
-def unmet_rule_max_dual1(mod,i):
-	return mod.dem[i] - mod.unmet[i] <= mod.M * mod.z_unmetmax[i]
-mod.UnmetMaxConstraint1 = Constraint(mod.N, rule=unmet_rule_max_dual1)
-def unmet_rule_max_dual2(mod,i):
-	return mod.unmetmax_dual[i] <= mod.M * (1 - mod.z_unmetmax[i])
-mod.UnmetMaxConstraint2 = Constraint(mod.N, rule=unmet_rule_max_dual2)
-
-
-#Unmet Demand Min Dual 	[Phi^(D.min)]
-def unmet_rule_min_dual1(mod,i):
-	return mod.unmet[i] <= mod.M * mod.z_unmetmin[i]
-mod.UnmetMinConstraint1 = Constraint(mod.N, rule=unmet_rule_min_dual1)
-def unmet_rule_min_dual2(mod,i):
-	return mod.unmetmin_dual[i] <= mod.M * (1 - mod.z_unmetmin[i])
-mod.UnmetMinConstraint2 = Constraint(mod.N, rule=unmet_rule_min_dual2)
-
-##############################################################
 
 #Transmisson Capacity
 #	abs(transmission) <= capacity * lines
@@ -197,40 +147,47 @@ def cap_rule2(mod, i, j):
 	return mod.tran[i,j] >=  -mod.cap[i,j] * mod.x_star[i,j]
 mod.CapConstraint2 = Constraint(mod.L, rule=cap_rule2)
 
+#Transmission Capacicty Dual	[Phi^(L.Max) ; Phi^(L.Min)]
+#	<= z*M
+def cap_ruleZM1(mod, i, j):
+	zmem = mod.LLen
+	n = mod.NLen
+	return (- mod.tran[i,j] + mod.cap[i,j] * mod.x_star[i,j] <=
+		mod.M * mod.z[zmem - (n-i)*(n-i-1)/2 + j - i - 1])
+mod.CapConstraintZM1 = Constraint(mod.L, rule=cap_ruleZM1)
+def cap_ruleZM2(mod, i, j):
+	zmem = 2*mod.LLen
+	n = mod.NLen
+	return (mod.tran[i,j] + mod.cap[i,j] * mod.x_star[i,j] <=
+		mod.M *  mod.z[zmem - (n-i)*(n-i-1)/2 + j - i - 1])
+mod.CapConstraintZM2= Constraint(mod.L, rule=cap_ruleZM2)
 
-#Transmission Capacicty Max Dual	[Phi^(L.Max)]
-def cap_rule_max_dual1(mod, i, j):
-	return (mod.cap[i,j] * mod.x_star[i,j] - mod.tran[i,j]
-		<= mod.M * mod.z_capmax[i,j])
-mod.CapMaxConstraintDual1 = Constraint(mod.L, rule=cap_rule_max_dual1)
-def cap_rule_max_dual2(mod, i, j):
-	return mod.capmax_dual[i,j] <= (mod.M * (1 - mod.z_capmax[i,j]))
-mod.CapMaxConstraintDual2 = Constraint(mod.L, rule=cap_rule_max_dual2)
-
-#Transmission Capacicty Min Dual	[Phi^(L.Min)]
-def cap_rule_min_dual1(mod, i, j):
-	return (mod.cap[i,j] * mod.x_star[i,j] + mod.tran[i,j]
-		<= mod.M * mod.z_capmin[i,j])
-mod.CapMinConstraintDual1 = Constraint(mod.L, rule=cap_rule_min_dual1)
-def cap_rule_min_dual2(mod, i, j):
-	return mod.capmin_dual[i,j] <= (mod.M * (1 - mod.z_capmin[i,j]))
-mod.CapMinConstraintDual2 = Constraint(mod.L, rule=cap_rule_min_dual2)
-
-##############################################################
 
 #Flow (Supply and Demand)
 #Alpha is unfilled demand
 #	Flow + Supply - Demand >= Unmet
 #flow is positive if from Node 1 to 2, and negative if Node 2 to 1
 def flow_rule(mod, i):
-	flowcol = sum(mod.tran[j,j2] for (j,j2) in mod.L if (j2 == i))
-	flowrow = sum(mod.tran[j,j2] for (j,j2) in mod.L if (j == i))
+	flowcol = sum(mod.tran[j,j2] for (j,j2) in mod.L
+		if (j2 == i)) 
+	flowrow = sum(mod.tran[j,j2] for (j,j2) in mod.L
+		if (j == i))
 	return (flowcol - flowrow + mod.gen[i] - mod.dem[i]
 		>=  -mod.unmet[i])
 mod.FlowConstraint = Constraint(mod.N, rule=flow_rule)
 
+#Flow Dual		[Lambda]
+#	<=ZM
+def flow_ruleZM(mod, i):
+	zmem = 4*mod.LLen + 2*mod.NLen
+	flowcol = sum(mod.tran[j,j2] for (j,j2) in mod.L
+		if (j2 == i)) 
+	flowrow = sum(mod.tran[j,j2] for (j,j2) in mod.L
+		if (j == i))
+	return (flowcol + mod.gen[i] - flowrow - mod.dem[i] +  mod.unmet[i]
+		<=  mod.M * mod.z[zmem + i])
+mod.FlowConstraintZM = Constraint(mod.N, rule=flow_ruleZM)
 
-##############################################################
 
 #Adjust the supply uncertainty budget
 #	If supmin = supmax, no need to calculate, it is feasible
@@ -255,7 +212,36 @@ def unc_dem_rule(mod):
 			<= mod.uncD)
 mod.UncDemConstraint = Constraint(rule=unc_dem_rule)
 
-##############################################################
+
+#Mu is 0 when z is 1	
+def mu_bigm_rule(mod, i):
+	return mod.mu[i] <= mod.M*(1-mod.z[i]) 
+mod.MuBigM = Constraint(mod.constraints, rule=mu_bigm_rule)
+
+#Lambda Mu Yp Rules
+#############################################
+#Generation
+#I = 6
+def lamda_mu_gen_rule(mod, i):
+	return (sum(mod.gen_mu[i,j] * mod.mu[j] for j in mod.constraints)
+		== -mod.gencost[i])
+mod.LamdaMuGenConstraint = Constraint(mod.N, rule=lamda_mu_gen_rule)
+
+#Alpha
+# I = 6
+def lamda_mu_alpha_rule(mod, i):
+	return (sum(mod.alpha_mu[i,j] * mod.mu[j] for j in mod.constraints)
+		== -mod.shed[i])
+mod.LamdaMuAlphaConstraint = Constraint(mod.N, rule=lamda_mu_alpha_rule)
+
+#Transmission
+# I = 15
+def lamda_mu_tran_rule(mod, i):
+	return (sum(mod.tran_mu[i,j] * mod.mu[j] for j in mod.constraints)
+		== 0)
+mod.LamdaMuTranConstraint = Constraint(mod.LRange, rule=lamda_mu_tran_rule)
+#############################################
+
 
 # Theta Rules
 # Theta is the angle at each node
@@ -270,47 +256,13 @@ def theta_rule2(mod,i,j):
 		<= (1 - mod.route_on[i,j]) * mod.Mtheta)
 mod.ThetaConstraint2 = Constraint(mod.L, rule=theta_rule2)
 
-# Theta Rules Max Dual		[Phi^(N.max)]
-def theta_rule_max_dual1(mod,i):
-	return  math.pi - mod.theta[i] <= mod.M * mod.z_thetamax[i]
-mod.ThetaMaxConstraint1 = Constraint(mod.N, rule=theta_rule_max_dual1)
-def theta_rule_max_dual2(mod,i):
-	return mod.thetamax_dual[i] <= mod.M * (1 - mod.z_thetamax[i])
-mod.ThetaMaxConstraint2 = Constraint(mod.N, rule=theta_rule_max_dual2)
+# Theta Rules Dual		[Phi^L]
+#
+#
 
-# Theta Rules Min Dual		[Phi^(N.min)]
-def theta_rule_min_dual1(mod,i):
-	return mod.theta[i] + math.pi <= mod.M * mod.z_thetamin[i]
-mod.ThetaMinConstraint1 = Constraint(mod.N, rule=theta_rule_min_dual1)
-def theta_rule_min_dual2(mod,i):
-	return mod.thetamin_dual[i] <= mod.M * (1 - mod.z_thetamin[i])
-mod.ThetaMinConstraint2 = Constraint(mod.N, rule=theta_rule_min_dual2)
-
-##############################################################
-
-##################################
-#Differentiating the Lagrangian
-##################################
-
-
-#Lagrangian with respect to Generation
-#	(Sigma * GenCost) - Flow_Dual + GenMax_Dual - GenMin_Dual = 0
-def lag_gen(mod,i):
-	lambda_g = (sum(mod.flow_dual[j,j2] for (j,j2) in mod.L
-		if ((j == i) or (j2 == i))))
-	return ((mod.sigma * mod.gencost[i]) - lambda_g 
-		+ mod.genmax_dual[i] -  mod.genmin_dual[i] == 0)
-mod.LagrangianGenConstraint = Constraint(mod.N, rule=lag_gen)
-
-
-#Lagrangian with respect to Unmet Demand
-#	(Sigma * Unmet_Penalty) - Flow_dual + UnmetMax_Dual -UnmetMin_Dual=0
-def lag_unmet(mod,i):
-	lambda_d = sum(mod.flow_dual[j,j2] for (j,j2) in mod.L
-		if ((j == i) or (j2 == i)))
-	return ((mod.sigma * mod.shed[i]) - lambda_d 
-		+ mod.unmetmax_dual[i] -  mod.unmetmin_dual[i] == 0)
-mod.LagrangianUnmetConstraint = Constraint(mod.N, rule=lag_unmet)
+# -Pi <= Phi <= Phi Dual
+#
+#
 
 '''
 #KEEP?
@@ -323,6 +275,7 @@ def ref_rule2(mod,i):
 mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
 #
 '''
+
  
 
 ##########
@@ -331,11 +284,6 @@ mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
 
 
 isub = mod.create_instance(RC.DATA)
-
-#Set x_star 
-for xi in RC.START_X_STAR:
-	isub.x_star[xi[0], xi[1]] = xi[2]
-
 results = opt.solve(isub, tee=True)
 #isub.pprint()
 results.write()
