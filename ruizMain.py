@@ -6,9 +6,8 @@ from pyomo.opt import SolverFactory
 import ruizC as RC
 import ruizSub as s
 import ruizMast as m
-import ruizStep0 as szero
 
-STOP = 2;							#How many iterations to quit after
+STOP = 4;							#How many iterations to quit after
 startlines = True					#If possible lines at start
 LB = float("-inf")					#Upper Bound
 UB = float("inf")					#Lower Bound
@@ -21,17 +20,17 @@ UB = float("inf")					#Lower Bound
 #Else the Lower Bound is zero	
 if (startlines):
 	#create step zero		
-	imast = szero.mod.create_instance(RC.DATA)
+	imast = m.mod.create_instance(RC.DATA)
 		
 	#Set x_star in step zero
 	for x in RC.START_X_STAR:
 		imast.x_star[x[0], x[1]] = x[2]
 	
 	#solve step zero
-	zresults = szero.opt.solve(imast)
+	zresults = m.opt.solve(imast)
 	LB = value(imast.Obj)
 	
-	'''
+
 	print("\n\n***MASTER ZERO***\n\n")
 	zresults.write()
 	for v in imast.component_objects(Var, active=True):
@@ -40,7 +39,7 @@ if (startlines):
 		for index in varob:
 			print ("   ",index, varob[index].value)
 	input()
-	'''
+	
 	
 else:
 	LB = 0;
@@ -61,7 +60,6 @@ UB = value(isub.Obj)
 
 
 print("\n\n***SUB ZERO***\n\n")
-'''
 sresults.write()
 for v in isub.component_objects(Var, active=True):
 	print ("Variable",v)
@@ -69,15 +67,8 @@ for v in isub.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value)
 
-isub.pprint()
+#isub.pprint()
 input()
-'''
-
-
-
-
-
-
 
 
 ############################
@@ -86,8 +77,8 @@ input()
 for k in range(1,STOP+1):
 	
 	#If UB and LB close enough, quit loop
-	#if abs(UB - LB) / UB <= RC.EPSILON:
-	#	break
+	if abs(UB - LB) / UB <= RC.EPSILON:
+		break
 	
 	########################
 	#STEP K Master Problem
@@ -100,40 +91,23 @@ for k in range(1,STOP+1):
 
 	#solve master problem
 	mresults = s.opt.solve(imast)
+	LB = value(imast.Obj)
+	
+	
+	
 	print('\n\nk:', k)
 	print("*MASTER*\n\n")
-	mresults.write()
-	LB = value(imast.Obj)
-
-	
+	mresults.write()	
 	for v in imast.component_objects(Var, active=True):
 		print ("Variable",v)
 		varob = getattr(imast, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	
 	#imast.pprint();
 	input()
+	
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	'''
 	########################
 	#STEP K Sub roblem
 	########################
@@ -146,15 +120,23 @@ for k in range(1,STOP+1):
 
 	#solve subproblem
 	sresults = s.opt.solve(isub)
+	UB = value(isub.Obj)
+	
+	#isub.pprint()
+	#input()
+
 	print('\n\nk:', k)
 	print("*SUB***\n\n")
-	#sresults.write()
-	UB = value(isub.Obj)
-
+	sresults.write()
 	for v in isub.component_objects(Var, active=True):
 		print ("Variable",v)
 		varob = getattr(isub, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
 	input()
-	'''
+	
+	print("XXX")
+	print(UB)
+	print(LB)
+	print("XXX")
+
