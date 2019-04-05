@@ -83,10 +83,6 @@ for k in range(1,STOP+1):
 	########################
 	#STEP K Master Problem
 	######################## 
-	#create master problem
-	if k == 1:			
-		imast = m.mod.create_instance(RC.DATA)
-
 	m.mast_func(imast, isub.dem, isub.genpos, RC.START_X_STAR, k)
 
 	#solve master problem

@@ -193,7 +193,7 @@ def unc_sup_rule(mod):
 	else:
 		return  (sum(mod.supmax[i] - mod.genpos[i] for i in mod.N)
 			/ sum(mod.supmax[i] - mod.supmin[i] for i in mod.N)
-			>= mod.uncS)
+			<= mod.uncS)
 mod.UncSupConstraint = Constraint(rule=unc_sup_rule)
 
 
