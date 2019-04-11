@@ -41,7 +41,7 @@ mod.gencost =	Param(mod.N)			#Cost to generate
 mod.shed =  	Param(mod.N)			#Load Shedding Cost Per Node
 mod.uncD =  	Param()					#Uncertainty in Demand	
 mod.uncS =  	Param()					#Uncertainty in Supply
-mod.ref	=		Param(mod.N)			#Reference Theta
+mod.ref	=		Param()					#Reference Theta
 
 #Parameters that come from Master
 mod.x_star = 	Param(mod.L, domain=NonNegativeIntegers, default=0,
@@ -61,7 +61,7 @@ mod.unmet  = Var(mod.N, domain=NonNegativeReals) #Unfilled Demand
 
 
 #Angle in [-pi,pi]
-mod.theta = Var(mod.N,bounds=(-math.pi, math.pi), initialize=0)
+mod.theta = Var(mod.N,bounds=(-math.pi, math.pi))
 
 #If route used (Bianary). Needed for when the lines per route is > 1
 mod.route_on =	Var(mod.L, domain=Binary, initialize=0)		
@@ -76,7 +76,7 @@ mod.thetamin_dual = Var(mod.N, domain=NonNegativeReals) #[Phi^(N.min)]
 mod.theta_dual 	  = Var(mod.L, domain=NonNegativeReals) #[Phi^(L)]
 mod.capmax_dual   =	Var(mod.L, domain=NonNegativeReals) #[Phi^(L.max)]
 mod.capmin_dual   =	Var(mod.L, domain=NonNegativeReals) #[Phi^(L.min)]
-mod.flow_dual 	  =	Var(mod.N, domain=NonNegativeReals) #[Lambda]
+mod.flow_dual 	  =	Var(mod.N) 							#[Lambda]
 	#flow_dual is the only dual for an equality, thus no complementarity
 
 #Binary Variables for Complementary Condition Linearization
@@ -94,7 +94,8 @@ mod.z_capmin	=	Var(mod.L, domain=Binary)	#For Capacity Min
 #############################################
 
 #Objective Function
-#	max [gen_cost * generation + shed_cost * unfilled_demand]
+#	max sigma * [gen_cost * generation + shed_cost * unfilled_demand]
+#		+ c^t*x
 def obj_expression(mod):
 	return (mod.sigma * (sum(mod.gencost[i] * mod.gen[i] for i in mod.N) 
 		 + sum(mod.shed[i] * mod.unmet[i] for i in mod.N))
@@ -104,9 +105,10 @@ mod.Obj = Objective(rule=obj_expression, sense = maximize)
 
 # Route Rule
 # To see what routes are activated, route_on is binary
-# MaxLines * Route_on >= x
+# 	X <= MaxLines * Route_on <= MaxLines * X 
 def route_rule(mod, i,j):
-	return (mod.maxLines * mod.route_on[i,j] >= mod.x_star[i,j])
+	return (mod.x_star[i,j], mod.maxLines * mod.route_on[i,j],
+		mod.maxLines * mod.x_star[i,j])
 mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
 
 
@@ -163,8 +165,9 @@ mod.CapConstraint2 = Constraint(mod.L, rule=cap_rule2)
 def flow_rule(mod, i):
 	flowcol = sum(mod.tran[j,j2] for (j,j2) in mod.L if (j2 == i))
 	flowrow = sum(mod.tran[j,j2] for (j,j2) in mod.L if (j == i))
-	return (flowcol - flowrow + mod.gen[i] - mod.dem[i]
-		==  -mod.unmet[i])
+	return (-RC.TOL,
+			flowcol - flowrow + mod.gen[i] - mod.dem[i] + mod.unmet[i],
+			RC.TOL)
 mod.FlowConstraint = Constraint(mod.N, rule=flow_rule)
 
 
@@ -193,7 +196,7 @@ def unc_sup_rule(mod):
 	else:
 		return  (sum(mod.supmax[i] - mod.genpos[i] for i in mod.N)
 			/ sum(mod.supmax[i] - mod.supmin[i] for i in mod.N)
-			<= mod.uncS)
+			== mod.uncS)
 mod.UncSupConstraint = Constraint(rule=unc_sup_rule)
 
 
@@ -205,7 +208,7 @@ def unc_dem_rule(mod):
 	else:
 		return  (sum(mod.dem[i] - mod.demmin[i] for i in mod.N)
 			/ sum(mod.demmax[i] - mod.demmin[i] for i in mod.N)
-			<= mod.uncD)
+			== mod.uncD)
 mod.UncDemConstraint = Constraint(rule=unc_dem_rule)
 
 #############################################
@@ -291,16 +294,21 @@ mod.ThetaMinConstraint2 = Constraint(mod.N, rule=theta_rule_min_dual2)
 #Lagrangian with respect to Generation
 #	(Sigma * GenCost) - Flow_Dual + GenMax_Dual - GenMin_Dual = 0
 def lag_gen(mod,i):
-	return ((mod.sigma * mod.gencost[i]) - mod.flow_dual[i] 
-		+ mod.genmax_dual[i] -  mod.genmin_dual[i] == 0) #-RC.TOL)
+	return (-RC.TOL,
+			(mod.sigma * mod.gencost[i]) - mod.flow_dual[i] 
+			+ mod.genmax_dual[i] -  mod.genmin_dual[i],
+			RC.TOL)
 mod.LagrangianGenConstraint = Constraint(mod.N, rule=lag_gen)
 
 
 #Lagrangian with respect to Unmet Demand
 #	(Sigma * Unmet_Penalty) - Flow_dual + UnmetMax_Dual -UnmetMin_Dual=0
+#	Within Tolerance
 def lag_unmet(mod,i):
-	return ((mod.sigma * mod.shed[i]) - mod.flow_dual[i]
-		+ mod.unmetmax_dual[i] -  mod.unmetmin_dual[i] ==0) #<= RC.TOL)
+	return (-RC.TOL,
+			(mod.sigma * mod.shed[i]) - mod.flow_dual[i]
+			+ mod.unmetmax_dual[i] -  mod.unmetmin_dual[i],
+			RC.TOL)	 
 mod.LagrangianUnmetConstraint = Constraint(mod.N, rule=lag_unmet)
 
 
@@ -308,9 +316,12 @@ mod.LagrangianUnmetConstraint = Constraint(mod.N, rule=lag_unmet)
 #	For each line from source --> dest:
 #		Flow_Dual(source) - Flow_Dual(dest) - Theta_Dual
 #		+ Capmax_Dual - Capmin_Dual = 0
+#	Within Tolerance
 def lag_trans(mod,i,j):
-	return (mod.flow_dual[i] - mod.flow_dual[j] - mod.theta_dual[i,j]
-		+ mod.capmax_dual[i,j] - mod.capmin_dual[i,j] == 0)#<= RC.TOL)
+	return (-RC.TOL,
+			mod.flow_dual[i] - mod.flow_dual[j] - mod.theta_dual[i,j]
+			+ mod.capmax_dual[i,j] - mod.capmin_dual[i,j],
+			RC.TOL)
 mod.LagrangianTransConstraint = Constraint(mod.L, rule=lag_trans)
 
 
@@ -318,13 +329,15 @@ mod.LagrangianTransConstraint = Constraint(mod.L, rule=lag_trans)
 #	At each node, that sends and recieves over lines:
 #		Sum(B*x*Theta_Dual)_(Send) -  Sum(B*x*Theta_Dual)_(Recieve)
 #		+ ThetaMax_Dual + ThetaMin_Dual = 0
+#	Within Tolerance
 def lag_theta(mod,i):
-	return (  sum(mod.x_star[j,j2] * mod.b[j,j2] * mod.theta_dual[j,j2]
-				for (j,j2) in mod.L if (j == i))
+	return (-RC.TOL,  
+			  sum(mod.x_star[j,j2] * mod.b[j,j2] * mod.theta_dual[j,j2]
+					for (j,j2) in mod.L if (j == i))
 		    - sum(mod.x_star[j,j2] * mod.b[j,j2] * mod.theta_dual[j,j2]
-				for (j,j2) in mod.L if (j2 == i))
-			+ mod.thetamax_dual[i] - mod.thetamin_dual[i]
-				== 0) #<= RC.TOL)
+					for (j,j2) in mod.L if (j2 == i))
+			+ mod.thetamax_dual[i] - mod.thetamin_dual[i],
+			RC.TOL)
 mod.LagrangianThetaConstraint = Constraint(mod.N, rule=lag_theta)	
 
 
@@ -344,12 +357,12 @@ mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
 #
 '''
  
-'''
+
 ##########
 #TO TEST
 ##########
 
-
+'''
 isub = mod.create_instance(RC.DATA)
 
 #Set x_star 
@@ -357,8 +370,9 @@ for xi in RC.START_X_STAR:
 	isub.x_star[xi[0], xi[1]] = xi[2]
 
 results = opt.solve(isub, tee=True)
-#isub.pprint()
-results.write()
+isub.pprint()
+#results.write()
+
 
 ##To Print
 for v in isub.component_objects(Var, active=True):

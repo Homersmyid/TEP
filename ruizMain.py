@@ -116,7 +116,10 @@ for k in range(1,STOP+1):
 
 	#solve subproblem
 	sresults = s.opt.solve(isub)
-	UB = value(isub.Obj)
+	
+	#store new upper bound if it is < previous upper bound
+	if value (isub.Obj) <= UB:
+		UB = value(isub.Obj)
 	
 	#isub.pprint()
 	#input()
