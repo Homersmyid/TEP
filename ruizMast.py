@@ -11,6 +11,7 @@ import math
 
 mod = AbstractModel()					#name of model
 opt = SolverFactory(RC.SOLVER)			#solver to use
+opt.options['mipgap'] = RC.MIPGAP
 
 ###############################################################
 #Parameters and Sets
@@ -198,7 +199,6 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 	#	Flow + Generation - Demand >= (-1)*("Unmet Demand")
 	#Flow is positive if from Node 1 to 2, and negative if Node 2 to 1	
 	for i in imast.N:
-		flowcol = 0;
 		flowcol = sum(imast.tran[k,j,j2] for (j,j2) in imast.L
 			if (j2 == i))
 		flowrow = sum(imast.tran[k,j,j2] for (j,j2) in imast.L
@@ -209,14 +209,16 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 	# Theta Rules
 	# Theta is the angle at each node
 	# For each line from i to j:
-	#	|Transmision - (b)*(theta_i - theta_j)| <= M(1-route_on)
+	#	(b)*(theta_i - theta_j) = flow  (if route "ij" active)
 	for i,j in imast.L:
-		imast.ThetaConstraintPos.add( imast.tran[k,i,j]
-			- imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
-			<= (1 - imast.route_on[i,j]) * imast.Mtheta)
-		imast.ThetaConstraintNeg.add ( -imast.tran[k,i,j]
-			+ imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
-			<= (1 - imast.route_on[i,j]) * imast.Mtheta)
+		imast.ThetaConstraintPos.add( 
+			imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
+			<= imast.tran[k,i,j]
+			+ (1 - imast.route_on[i,j]) * imast.Mtheta)
+		imast.ThetaConstraintNeg.add (
+			imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
+			>= imast.tran[k,i,j]
+			- (1 - imast.route_on[i,j]) * imast.Mtheta)
  
 
 	# Eta Rule (Hourly Costs)
@@ -227,46 +229,8 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 		+ sum(imast.shed[i] * imast.unmet[k,i] for i in imast.N))
 		<= imast.eta)
 
-'''
-DO I NEED THIS???
+
 	# Reference Theta
 	#	Theta refernce = 0 for each k 
 	imast.RefConstraint.add(imast.theta[k,imast.ref] == 0)
-'''
-	
 
-
-
-##########
-#TO TEST
-##########
-
-'''
-imast = mod.create_instance(RC.DATA)
-
-#Set x_star in step zero
-for x in RC.START_X_STAR:
-	imast.x_star[x[0], x[1]] = x[2]
-
-#set demand in master
-list1 = [200, 0,0, 150, 100, 200]
-for d in range(1,7):
-	imast.dem[d] = list1[d-1]
-
-#set possible generation in master
-list2 = [300, 250, 400, 0, 300, 150]
-for d in range(1,7):
-	imast.genpos[d] = list2[d-1]
-	
-results = opt.solve(imast, tee=True)
-#imast.pprint()
-results.write()
-
-
-#To Print
-for v in imast.component_objects(Var, active=True):
-	print ("Variable",v)
-	varob = getattr(imast, str(v))
-	for index in varob:
-		print ("   ",index, varob[index].value) 
-'''
