@@ -62,7 +62,7 @@ for xi in imast.x:
 		
 #solve subproblem
 sresults = s.opt.solve(isub, tee="true")
-#UB = value(isub.Obj)
+UB = value(isub.Obj)
 
 
 print("\n\n***SUB ZERO***\n\n")
@@ -73,7 +73,7 @@ for v in isub.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value)
 
-#isub.pprint()
+isub.pprint()
 input()
 
 
@@ -92,8 +92,7 @@ for k in range(1,STOP+1):
 	m.mast_func(imast, isub.dem, isub.genpos, START_X_STAR, k)
 
 	#solve master problem
-	mresults = s.opt.solve(imast)
-	#mresults = s.opt.solve(imast, tee="True")
+	mresults = s.opt.solve(imast, tee="True")
 	LB = value(imast.Obj)
 	
 	print('\n\nk:', k)

@@ -2,10 +2,10 @@
 ###############################
 
 # Max Capacity to use in M * x > trans
-param M := 9000000;
+param M := 66666666;
 
 # M to use in theta calculations
-param Mtheta := 9000000;
+param Mtheta := 9e7;
 
 # Nodes
 set N := 1 2 3 4 5 6 ;
@@ -19,13 +19,14 @@ set L := (1,2) (1,3) (1,4) (1,5) (1,6)
 ;
 
 # Budget
-param pi := 3000000;
+param pi := 3e9;
+
 
 #Uncertainty in Demand
-param uncD := 1;
+param uncD := 0.5;
 
 #Uncertainty in Supply
-param uncS := 1;
+param uncS := 0.4;
 
 #Hours in a year
 #Multiply this by eta in objective problem
@@ -36,16 +37,16 @@ param maxLines := 1;
 
 # Cost of each line (Annual)
 param c:=
-1 2	0			1 3	0			1 4	0			1 5	0			1 6	0
-2 3	700000		2 4	1400000		2 5	0			2 6	0			3 4	1800000
-3 5	0			3 6	1600000		4 5	0			4 6	800000		5 6	700000
+1 2	7232000		1 3	7337040		1 4	11584800	1 5	3861600		1 6	13129440
+2 3	3861600		2 4	7723200		2 5	5985480		2 6	5792400		3 4	11391720
+3 5	3861600		3 6	9267840		4 5	12164040	4 6	5792400		5 6	11777880
 ;
 
-#Capacity of Each Line
+# Capacity of Each Line
 param cap:=
-1 2	150		1 3	150		1 4	0		1 5	0		1 6	0
-2 3	150		2 4	200		2 5	0		2 6	0		3 4	150
-3 5	0		3 6	200		4 5	150		4 6	150		5 6	150
+1 2	100		1 3	100		1 4	80		1 5	100		1 6	70
+2 3	100		2 4	100		2 5	100		2 6	100		3 4	82
+3 5	100		3 6	100		4 5	75		4 6	100		5 6	78
 ;
 
 #Reactance of each line
@@ -57,38 +58,32 @@ param b:=
 
 # Generating Costs
 param gencost :=
-1	18		2	25		3	16		4	0		5	32		6	35
+1	15		2	0		3	10		4	0		5	0		6	20
 ;
 
 #Penalty for Unfufiled Load
 param  shed :=
-1	40		2	0		3	0		4	52		5	55		6	65
+1	112.5		2	115		3	120		4	110		5	112		6	0
 ;
 
-param ref :=
-1	0					2	3.141592653589793	3	3.141592653589793
-4	3.141592653589793	5	3.141592653589793	6	3.141592653589793		
-;
-
-
-
+param ref := 1;
 
 # Max Demand
 param demmax :=
-1	200		2	0		3	0		4	150		5	100		6	200
+1	96		2	288		3	48		4	192		5	288		6	0
 ;
 
 # Min Demand
 param demmin :=
-1	200		2	0		3	0		4	150		5	100		6	200
+1	64		2	192		3	32		4	128		5	192		6	0
 ;
 
 # Max Supply
 param supmax :=
-1	300		2	250		3	400		4	0		5	300		6	150
+1	225		2	000		3	525		4	0		5	0		6	900
 ;
 
 # Min Supply
 param supmin :=
-1	300		2	250		3	400		4	0		5	300		6	150
+1	0		2	0		3	0		4	0		5	0		6	0
 ;
