@@ -39,7 +39,7 @@ mod.gencost =	Param(mod.N)			#Cost to generate
 mod.shed =  	Param(mod.N)			#Load Shedding Cost Per Node
 mod.uncD =  	Param()					#Uncertainty in Demand	
 mod.uncS =  	Param()					#Uncertainty in Supply
-mod.ref	=		Param(mod.N)			#Reference Theta
+mod.ref	=		Param()					#Reference Theta
 
 #Parameters that come from subproblem or setup
 mod.dem = 	 Param(mod.N, default=0, mutable = True)	#Demand
@@ -67,23 +67,23 @@ mod.route_on =	Var(mod.L, domain=Binary, initialize=0)
 #Variables that grow each subproblem solve (P = subproblem solves)
 
 #Ammount Transmitted
-mod.tran = Var(mod. P, mod.L, within=Reals, initialize=0)
+mod.tran = Var(mod.P, mod.L, within=Reals, initialize=0)
 
 #Generation Supply	
-mod.gen  =	Var(mod. P, mod.N, domain=NonNegativeReals, initialize=0)
+mod.gen  =	Var(mod.P, mod.N, domain=NonNegativeReals, initialize=0)
 	
 #Unfilled Demand	
-mod.unmet = Var(mod. P, mod.N, domain=NonNegativeReals, initialize=0)
+mod.unmet = Var(mod.P, mod.N, domain=NonNegativeReals, initialize=0)
 
 #Angle in [-pi,pi]	
-mod.theta = Var(mod. P, mod.N,bounds=(-math.pi, math.pi), initialize=0)	
+mod.theta = Var(mod.P, mod.N, bounds=(-math.pi, math.pi), initialize=0)	
 
 ###############################################################
 #Constraints
 ###############################################################
 
 #Objective Function
-# 	min [c^t*x + sigma * eta]
+# 	min [c^t*x + eta]
 def obj_expression(mod):
 	return (sum(mod.c[i,j] * mod.x[i,j] for i,j in mod.L)
 		+ mod.eta)
@@ -112,11 +112,13 @@ mod.MaxLinesRuleConstraint = Constraint(mod.L, rule=max_lines_rule)
 
 # Route Rule
 # To see what routes are activated, route_on is binary
-# MaxLines * Route_on >= x
-def route_rule(mod, i,j):
-	return (mod.maxLines * mod.route_on[i,j] >= mod.x[i,j])
-mod.RouteConstraint = Constraint(mod.L, rule=route_rule)
-
+# 	X <= MaxLines * Route_on <= MaxLines * X 
+def route_rule1(mod, i,j):
+	return (mod.x[i,j] <= mod.maxLines * mod.route_on[i,j])
+mod.RouteConstraint1 = Constraint(mod.L, rule=route_rule1)
+def route_rule2(mod, i,j):
+	return (mod.route_on[i,j] <=  mod.x[i,j])
+mod.RouteConstraint2 = Constraint(mod.L, rule=route_rule2)
 
 ###############################################################
 #Expanding Constraints
@@ -131,6 +133,7 @@ mod.FlowConstraint = ConstraintList()
 mod.ThetaConstraintPos = ConstraintList()
 mod.ThetaConstraintNeg = ConstraintList()
 mod.EtaConstraint = ConstraintList()
+mod.RefConstraint = ConstraintList()
 
 
 
@@ -224,21 +227,13 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 		+ sum(imast.shed[i] * imast.unmet[k,i] for i in imast.N))
 		<= imast.eta)
 
-		
-	'''
-	######################
-	#NEEDED? will this just slow down program
-
-	# Set a reference theta to zero 
-	# |theta| <= ref
-	def ref_rule1(mod,i):
-		return (mod.theta[i] <= mod.ref[i]) 
-	mod.RefConstraint1 = Constraint(mod.N, rule=ref_rule1)
-	def ref_rule2(mod,i):
-		return (-mod.theta[i] <= mod.ref[i]) 
-	mod.RefConstraint2 = Constraint(mod.N, rule=ref_rule2)
-	#######################
-	'''
+'''
+DO I NEED THIS???
+	# Reference Theta
+	#	Theta refernce = 0 for each k 
+	imast.RefConstraint.add(imast.theta[k,imast.ref] == 0)
+'''
+	
 
 
 
