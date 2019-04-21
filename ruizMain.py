@@ -3,15 +3,20 @@
 from __future__ import division
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
+from pyomo.opt import SolverStatus, TerminationCondition
 import ruizC as RC
 import ruizSub as s
 import ruizMast as m
-import ruizStep0 as szero
 
-STOP = 2;							#How many iterations to quit after
+STOP = 8							#How many iterations to quit after
 startlines = True					#If possible lines at start
 LB = float("-inf")					#Upper Bound
 UB = float("inf")					#Lower Bound
+
+#Lines At Start
+START_X_STAR = [(1,2,0), (1,3,0), (1,4,0), (1,5,0), (1,6,0),
+				(2,3,0), (2,4,0), (2,5,0), (2,6,0), (3,4,0),
+				(3,5,0), (3,6,0), (4,5,0), (4,6,0), (5,6,0)]
 
 ############################
 #Step Zero Master
@@ -21,17 +26,17 @@ UB = float("inf")					#Lower Bound
 #Else the Lower Bound is zero	
 if (startlines):
 	#create step zero		
-	imast = szero.mod.create_instance(RC.DATA)
+	imast = m.mod.create_instance(RC.DATA)
 		
 	#Set x_star in step zero
-	for x in RC.START_X_STAR:
+	for x in START_X_STAR:
 		imast.x_star[x[0], x[1]] = x[2]
 	
 	#solve step zero
-	zresults = szero.opt.solve(imast)
+	zresults = m.opt.solve(imast, tee="True")
 	LB = value(imast.Obj)
 	
-	'''
+	
 	print("\n\n***MASTER ZERO***\n\n")
 	zresults.write()
 	for v in imast.component_objects(Var, active=True):
@@ -39,11 +44,11 @@ if (startlines):
 		varob = getattr(imast, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	input()
-	'''
+	#input()
+	
 	
 else:
-	LB = 0;
+	LB = 0
 
 ############################
 #Step Zero Subproblem
@@ -56,12 +61,11 @@ for xi in imast.x:
 	isub.x_star[xi] = int(round(value(imast.x[xi])))
 		
 #solve subproblem
-sresults = s.opt.solve(isub)
-UB = value(isub.Obj)
+sresults = s.opt.solve(isub, tee="true")
+#UB = value(isub.Obj)
 
 
 print("\n\n***SUB ZERO***\n\n")
-'''
 sresults.write()
 for v in isub.component_objects(Var, active=True):
 	print ("Variable",v)
@@ -69,15 +73,8 @@ for v in isub.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value)
 
-isub.pprint()
+#isub.pprint()
 input()
-'''
-
-
-
-
-
-
 
 
 ############################
@@ -86,54 +83,32 @@ input()
 for k in range(1,STOP+1):
 	
 	#If UB and LB close enough, quit loop
-	#if abs(UB - LB) / UB <= RC.EPSILON:
-	#	break
+	if (UB - LB) / UB <= RC.EPSILON:
+		break
 	
 	########################
 	#STEP K Master Problem
 	######################## 
-	#create master problem
-	if k == 1:			
-		imast = m.mod.create_instance(RC.DATA)
-
-	m.mast_func(imast, isub.dem, isub.genpos, RC.START_X_STAR, k)
+	m.mast_func(imast, isub.dem, isub.genpos, START_X_STAR, k)
 
 	#solve master problem
 	mresults = s.opt.solve(imast)
+	#mresults = s.opt.solve(imast, tee="True")
+	LB = value(imast.Obj)
+	
 	print('\n\nk:', k)
 	print("*MASTER*\n\n")
-	mresults.write()
-	LB = value(imast.Obj)
-
-	
+	mresults.write()	
 	for v in imast.component_objects(Var, active=True):
 		print ("Variable",v)
 		varob = getattr(imast, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	
-	#imast.pprint();
+	#imast.pprint()
 	input()
+	
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	'''
 	########################
 	#STEP K Sub roblem
 	########################
@@ -145,16 +120,45 @@ for k in range(1,STOP+1):
 		isub.x_star[xi] = int(round(value(imast.x[xi])))
 
 	#solve subproblem
-	sresults = s.opt.solve(isub)
+	sresults = s.opt.solve(isub, tee="True")
+	
+	isub.write("junk.lp")
 	print('\n\nk:', k)
 	print("*SUB***\n\n")
-	#sresults.write()
-	UB = value(isub.Obj)
-
+	sresults.write()
 	for v in isub.component_objects(Var, active=True):
 		print ("Variable",v)
 		varob = getattr(isub, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	input()
-	'''
+	print("Solver Status: ",  sresults.solver.termination_condition)
+	#isub.pprint()
+	input()	
+	
+	#store new upper bound if it is < previous upper bound
+	if value (isub.Obj) <= UB:
+		print("UPDATE UB")
+		UB = value(isub.Obj)
+	
+	print("XXX")
+	print(UB)
+	print(LB)
+	print(UB - LB)
+	print((UB-LB)/ UB)
+	print("XXX")
+	
+	
+	
+	
+'''
+results = opt.solve(instance) # Solving a model instance  
+instance.load(results) # Loading solution into results object
+
+if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
+    # Do something when the solution in optimal and feasible
+elif (results.solver.termination_condition == TerminationCondition.infeasible):
+    # Do something when model in infeasible
+else:
+    # Something else is wrong
+    print “Solver Status: ”,  result.solver.status
+'''
