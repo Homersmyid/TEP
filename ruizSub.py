@@ -159,21 +159,6 @@ def flow_rule(mod, i):
 mod.FlowConstraint = Constraint(mod.N, rule=flow_rule)
 
 
-'''
-# Theta Rules
-# Theta is the angle at each node
-# For each line from i to j:
-#	(b)*(theta_i - theta_j) = flow  (if route "ij" active)
-def theta_rule1(mod,i,j):
-	return (mod.b[i,j] * (mod.theta[i] - mod.theta[j])
-		<= mod.tran[i,j] + (1 - mod.x_star[i,j]) * mod.Mtran)
-mod.ThetaConstraint1 = Constraint(mod.L, rule=theta_rule1)
-def theta_rule2(mod,i,j):
-	return (mod.b[i,j] * (mod.theta[i] - mod.theta[j])
-		>= mod.tran[i,j] - (1 - mod.x_star[i,j]) * mod.Mtran)
-mod.ThetaConstraint2 = Constraint(mod.L, rule=theta_rule2)
-'''
-
 # Theta Rules
 # Theta is the angle at each node
 # For each line from i to j:
@@ -188,7 +173,7 @@ mod.ThetaConstraint = Constraint(mod.L, rule=theta_rule)
 # Reference Theta
 #	Theta_refernce = 0
 def ref_rule(mod):
-	return mod.theta[mod.ref] == 0
+	return mod.theta[value(mod.ref)] == 0
 mod.RefConstraint = Constraint(rule=ref_rule)
 
 ###############################
@@ -348,19 +333,19 @@ mod.LagrangianThetaConstraint = Constraint(mod.N, rule=lag_theta)
 ##########
 #TO TEST
 ##########
-
+'''
 isub = mod.create_instance(RC.DATA)
 
 #Lines At Start
-START_X_STAR = [(1,2,0), (1,3,0), (1,4,0), (1,5,0), (1,6,0),
+START_X_STAR = [(1,2,1), (1,3,1), (1,4,0), (1,5,0), (1,6,0),
 				(2,3,0), (2,4,0), (2,5,0), (2,6,0), (3,4,0),
-				(3,5,0), (3,6,0), (4,5,0), (4,6,0), (5,6,0)]
+				(3,5,0), (3,6,0), (4,5,1), (4,6,0), (5,6,0)]
 
 #Set x_star 
 for xi in START_X_STAR:
 	isub.x_star[xi[0], xi[1]] = xi[2]
 
-results = opt.solve(isub, tee=True)
+results = opt.solve(isub)
 results.write()
 
 
@@ -371,6 +356,11 @@ for v in isub.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value) 
 #isub.pprint()
+
+
+'''
+
+
 
 '''
 file1 = open("junk", 'w') 

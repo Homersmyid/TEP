@@ -34,13 +34,20 @@ mod.demmax = 	Param(mod.N)			#Maximum possible Demand
 mod.demmin = 	Param(mod.N)			#Minimum possible Demand
 mod.supmax = 	Param(mod.N)			#Maximum possible Supply
 mod.supmin = 	Param(mod.N)			#Minimum possible Supply
-mod.M	=		Param()					#Max M for Fourtuny-Amat
-mod.Mtheta = 	Param()					#M to use for theta constraint
 mod.gencost =	Param(mod.N)			#Cost to generate	
 mod.shed =  	Param(mod.N)			#Load Shedding Cost Per Node
 mod.uncD =  	Param()					#Uncertainty in Demand	
 mod.uncS =  	Param()					#Uncertainty in Supply
 mod.ref	=		Param()					#Reference Theta
+
+#Big Ms
+mod.M	=		Param()					#Max M for Duals
+mod.Mgen =		Param()					#Highest Gen Possible
+mod.Mdem =		Param()					#Highest Demand Possible
+mod.Mcap = 		Param()					#Highest Line Capacity
+mod.Mtheta = 	Param()					#7 since 7 > 2pi
+mod.Mtran = 	Param()					#Most that can be transmitted
+	#Note if line more than 1 than this can be more than any capacity
 
 #Parameters that come from subproblem or setup
 mod.dem = 	 Param(mod.N, default=0, mutable = True)	#Demand
@@ -123,18 +130,17 @@ mod.RouteConstraint2 = Constraint(mod.L, rule=route_rule2)
 
 ###############################################################
 #Expanding Constraints
-
 # A copy of these will be added for each new run of the master
 ###############################################################
-mod.GenConstraint = ConstraintList()
-mod.UnmetDemConstraint = ConstraintList()
-mod.CapConstraintPos = ConstraintList()
-mod.CapConstraintNeg = ConstraintList()
-mod.FlowConstraint = ConstraintList()
-mod.ThetaConstraintPos = ConstraintList()
-mod.ThetaConstraintNeg = ConstraintList()
-mod.EtaConstraint = ConstraintList()
-mod.RefConstraint = ConstraintList()
+mod.GenConstraint 		= ConstraintList()
+mod.UnmetDemConstraint 	= ConstraintList()
+mod.CapConstraintPos 	= ConstraintList()
+mod.CapConstraintNeg 	= ConstraintList()
+mod.FlowConstraint 		= ConstraintList()
+mod.ThetaConstraint 	= ConstraintList()
+mod.EtaConstraint 		= ConstraintList()
+mod.RefConstraint 		= ConstraintList()
+
 
 
 
@@ -159,7 +165,7 @@ mod.RefConstraint = ConstraintList()
 ###############################################################
 
 def mast_func(imast, subdem, subgenpos, in_x_star, k):
-
+	
 	#Add to set P that there is a new subproblem solved
 	imast.P.add(k)
 	
@@ -205,22 +211,15 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 			if (j == i))
 		imast.FlowConstraint.add( flowcol - flowrow
 			+ imast.gen[k,i] - imast.dem[i] >= -imast.unmet[k,i])
- 
+
 	# Theta Rules
 	# Theta is the angle at each node
-	# For each line from i to j:
-	#	(b)*(theta_i - theta_j) = flow  (if route "ij" active)
+	# For each route from i to j:
+	#	(x)*(b)*(theta_i - theta_j) = flow  (if route "ij" active)		
 	for i,j in imast.L:
-		imast.ThetaConstraintPos.add( 
-			imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
-			<= imast.tran[k,i,j]
-			+ (1 - imast.route_on[i,j]) * imast.Mtheta)
-		imast.ThetaConstraintNeg.add (
-			imast.b[i,j] * (imast.theta[k, i] - imast.theta[k, j])
-			>= imast.tran[k,i,j]
-			- (1 - imast.route_on[i,j]) * imast.Mtheta)
- 
-
+		imast.ThetaConstraint.add( imast.x_star[i,j] * imast.b[i,j]
+		* (imast.theta[k,i] - imast.theta[k,j]) == imast.tran[k,i,j])
+	
 	# Eta Rule (Hourly Costs)
 	#	Eta >= sigma * [(Generation_Costs) + (Load_Shedding)]
 	# Sigma is hours in a year
@@ -228,9 +227,10 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 		(sum(imast.gencost[i] * imast.gen[k,i] for i in imast.N) 
 		+ sum(imast.shed[i] * imast.unmet[k,i] for i in imast.N))
 		<= imast.eta)
-
+	
 
 	# Reference Theta
 	#	Theta refernce = 0 for each k 
-	imast.RefConstraint.add(imast.theta[k,imast.ref] == 0)
+	imast.RefConstraint.add(imast.theta[k,value(imast.ref)] == 0)
+	
 

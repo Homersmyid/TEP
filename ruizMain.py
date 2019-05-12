@@ -14,9 +14,9 @@ LB = float("-inf")					#Upper Bound
 UB = float("inf")					#Lower Bound
 
 #Lines At Start
-START_X_STAR = [(1,2,0), (1,3,0), (1,4,0), (1,5,0), (1,6,0),
+START_X_STAR = [(1,2,1), (1,3,1), (1,4,0), (1,5,0), (1,6,0),
 				(2,3,0), (2,4,0), (2,5,0), (2,6,0), (3,4,0),
-				(3,5,0), (3,6,0), (4,5,0), (4,6,0), (5,6,0)]
+				(3,5,0), (3,6,0), (4,5,1), (4,6,0), (5,6,0)]
 
 ############################
 #Step Zero Master
@@ -33,10 +33,10 @@ if (startlines):
 		imast.x_star[x[0], x[1]] = x[2]
 	
 	#solve step zero
-	zresults = m.opt.solve(imast, tee="True")
+	zresults = m.opt.solve(imast)
 	LB = value(imast.Obj)
-	
-	
+
+	'''
 	print("\n\n***MASTER ZERO***\n\n")
 	zresults.write()
 	for v in imast.component_objects(Var, active=True):
@@ -44,8 +44,9 @@ if (startlines):
 		varob = getattr(imast, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	#input()
 	
+	input()
+	'''
 	
 else:
 	LB = 0
@@ -61,10 +62,10 @@ for xi in imast.x:
 	isub.x_star[xi] = int(round(value(imast.x[xi])))
 		
 #solve subproblem
-sresults = s.opt.solve(isub, tee="true")
+sresults = s.opt.solve(isub)
 UB = value(isub.Obj)
 
-
+'''
 print("\n\n***SUB ZERO***\n\n")
 sresults.write()
 for v in isub.component_objects(Var, active=True):
@@ -73,9 +74,9 @@ for v in isub.component_objects(Var, active=True):
 	for index in varob:
 		print ("   ",index, varob[index].value)
 
-isub.pprint()
+#isub.pprint()
 input()
-
+'''
 
 ############################
 #Main Loop
@@ -92,11 +93,12 @@ for k in range(1,STOP+1):
 	m.mast_func(imast, isub.dem, isub.genpos, START_X_STAR, k)
 
 	#solve master problem
-	mresults = s.opt.solve(imast, tee="True")
+	mresults = m.opt.solve(imast)
 	LB = value(imast.Obj)
 	
 	print('\n\nk:', k)
 	print("*MASTER*\n\n")
+	'''
 	mresults.write()	
 	for v in imast.component_objects(Var, active=True):
 		print ("Variable",v)
@@ -104,6 +106,7 @@ for k in range(1,STOP+1):
 		for index in varob:
 			print ("   ",index, varob[index].value)
 	#imast.pprint()
+	'''
 	input()
 	
 
@@ -119,9 +122,8 @@ for k in range(1,STOP+1):
 		isub.x_star[xi] = int(round(value(imast.x[xi])))
 
 	#solve subproblem
-	sresults = s.opt.solve(isub, tee="True")
+	sresults = s.opt.solve(isub)
 	
-	isub.write("junk.lp")
 	print('\n\nk:', k)
 	print("*SUB***\n\n")
 	sresults.write()
@@ -130,7 +132,6 @@ for k in range(1,STOP+1):
 		varob = getattr(isub, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	print("Solver Status: ",  sresults.solver.termination_condition)
 	#isub.pprint()
 	input()	
 	
