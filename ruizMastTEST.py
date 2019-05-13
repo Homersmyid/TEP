@@ -170,12 +170,13 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 	imast.P.add(k)
 	
 	#Set demand in master
-	for i in subdem:
-		imast.dem[i] = value(subdem[i])
+	for i in range(0,6):
+		print(i)
+		imast.dem[i+1] = subdem[i]
 
 	#Set possible generation in master
-	for i in subgenpos:
-		imast.genpos[i] = value(subgenpos[i])
+	for i in range(0,6):
+		imast.genpos[i+1] = subgenpos[i]
 
 	#Set x_star
 	for x in in_x_star:
@@ -183,14 +184,14 @@ def mast_func(imast, subdem, subgenpos, in_x_star, k):
 
 	#Supply min and max
 	#	Gen <= (Possible_Generation)
-	for i in subgenpos:
-		imast.GenConstraint.add( imast.gen[k,i] <= value(subgenpos[i]))
+	for i in range(0,6):
+		imast.GenConstraint.add( imast.gen[k,i+1] <= subgenpos[i])
 		
 	#Unmet Demand is less than Demand
 	#	("Unmet Demand") <= demand
-	for i in subdem:
-		imast.UnmetDemConstraint.add( imast.unmet[k,i]
-			<= value(subdem[i]))
+	for i in range(0,6):
+		imast.UnmetDemConstraint.add( imast.unmet[k,i+1]
+			<= subdem[i])
 
 	#Transmisson Capacity
 	#	abs(transmission) <= capacity

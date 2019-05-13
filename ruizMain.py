@@ -7,6 +7,8 @@ from pyomo.opt import SolverStatus, TerminationCondition
 import ruizC as RC
 import ruizSub as s
 import ruizMast as m
+import time
+start = time.time()
 
 STOP = 8							#How many iterations to quit after
 startlines = True					#If possible lines at start
@@ -36,7 +38,7 @@ if (startlines):
 	zresults = m.opt.solve(imast)
 	LB = value(imast.Obj)
 
-	'''
+	
 	print("\n\n***MASTER ZERO***\n\n")
 	zresults.write()
 	for v in imast.component_objects(Var, active=True):
@@ -46,7 +48,7 @@ if (startlines):
 			print ("   ",index, varob[index].value)
 	
 	input()
-	'''
+	
 	
 else:
 	LB = 0
@@ -65,7 +67,7 @@ for xi in imast.x:
 sresults = s.opt.solve(isub)
 UB = value(isub.Obj)
 
-'''
+
 print("\n\n***SUB ZERO***\n\n")
 sresults.write()
 for v in isub.component_objects(Var, active=True):
@@ -76,7 +78,7 @@ for v in isub.component_objects(Var, active=True):
 
 #isub.pprint()
 input()
-'''
+
 
 ############################
 #Main Loop
@@ -98,15 +100,14 @@ for k in range(1,STOP+1):
 	
 	print('\n\nk:', k)
 	print("*MASTER*\n\n")
-	'''
+		
 	mresults.write()	
 	for v in imast.component_objects(Var, active=True):
 		print ("Variable",v)
 		varob = getattr(imast, str(v))
 		for index in varob:
 			print ("   ",index, varob[index].value)
-	#imast.pprint()
-	'''
+	#imast.pprint()	
 	input()
 	
 
@@ -124,6 +125,7 @@ for k in range(1,STOP+1):
 	#solve subproblem
 	sresults = s.opt.solve(isub)
 	
+	
 	print('\n\nk:', k)
 	print("*SUB***\n\n")
 	sresults.write()
@@ -133,7 +135,8 @@ for k in range(1,STOP+1):
 		for index in varob:
 			print ("   ",index, varob[index].value)
 	#isub.pprint()
-	input()	
+	input()
+	
 	
 	#store new upper bound if it is < previous upper bound
 	if value (isub.Obj) <= UB:
@@ -147,7 +150,9 @@ for k in range(1,STOP+1):
 	print((UB-LB)/ UB)
 	print("XXX")
 	
-	
+	end = time.time()
+	print("Time:")
+	print(end - start)
 	
 	
 '''

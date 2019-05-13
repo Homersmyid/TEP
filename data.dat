@@ -1,11 +1,27 @@
-####TO TEST
+###############################
+#Big Ms
 ###############################
 
-# Max Capacity to use in M * x > trans
-param M := 66666666;
+# Max of the Duals 
+param M    := 90000000;
 
-# M to use in theta calculations
-param Mtheta := 9e7;
+#Highest Gen Possible				
+param Mgen := 9000;
+
+#Highest Demand Possible						
+param Mdem := 9000;
+
+#Highest Line Capacity
+param Mcap := 1000;
+#Highest theta difference. 7 since 7 > 2pi
+param Mtheta := 7;
+
+#Most that can be transmitted
+param Mtran := 90000;
+
+###############################
+#Params
+###############################
 
 # Nodes
 set N := 1 2 3 4 5 6 ;
@@ -19,21 +35,23 @@ set L := (1,2) (1,3) (1,4) (1,5) (1,6)
 ;
 
 # Budget
-param pi := 3e9;
+param pi := 3000000000;
 
 
 #Uncertainty in Demand
-param uncD := 0.5;
+param uncD := 1;
 
 #Uncertainty in Supply
 param uncS := 0.4;
+
+param ref := 1;
 
 #Hours in a year
 #Multiply this by eta in objective problem
 param sigma := 8760;
 
 # Max Lines per connection
-param maxLines := 1;
+param maxLines := 3;
 
 # Cost of each line (Annual)
 param c:=
@@ -66,8 +84,6 @@ param  shed :=
 1	112.5		2	115		3	120		4	110		5	112		6	0
 ;
 
-param ref := 1;
-
 # Max Demand
 param demmax :=
 1	96		2	288		3	48		4	192		5	288		6	0
@@ -85,5 +101,5 @@ param supmax :=
 
 # Min Supply
 param supmin :=
-1	0		2	0		3	0		4	0		5	0		6	0
+1	75		2	0		3	175		4	0		5	0		6	300
 ;
