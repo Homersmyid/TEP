@@ -1,0 +1,105 @@
+###############################
+#Big Ms
+###############################
+
+# Max of the Duals 
+param M    := 90000000;
+
+#Highest Gen Possible				
+param Mgen := 9000;
+
+#Highest Demand Possible						
+param Mdem := 9000;
+
+#Highest Line Capacity
+param Mcap := 1000;
+#Highest theta difference. 7 since 7 > 2pi
+param Mtheta := 7;
+
+#Most that can be transmitted
+param Mtran := 90000;
+
+###############################
+#Params
+###############################
+
+# Nodes
+set N := 1 2 3 4 5 6 ;
+
+# Possible Lines
+set L := (1,2) (1,3) (1,4) (1,5) (1,6)
+		 (2,3) (2,4) (2,5) (2,6)
+		 (3,4) (3,5) (3,6)
+		 (4,5) (4,6)
+		 (5,6)
+;
+
+# Budget
+param pi := 300000000;
+
+
+#Uncertainty in Demand
+param uncD := 0;
+
+#Uncertainty in Supply
+param uncS := 0;
+
+#Hours in a year
+#Multiply this by eta in objective problem
+param sigma := 8760;
+
+# Max Lines per connection
+param maxLines := 1;
+
+# Cost of each line (Annual)
+param c:=
+1 2	7232000		1 3	7337040		1 4	11584800	1 5	3861600		1 6	13129440
+2 3	3861600		2 4	7723200		2 5	5985480		2 6	5792400		3 4	11391720
+3 5	3861600		3 6	9267840		4 5	12164040	4 6	5792400		5 6	11777880
+;
+
+# Capacity of Each Line
+param cap:=
+1 2	100		1 3	100		1 4	80		1 5	100		1 6	70
+2 3	100		2 4	100		2 5	100		2 6	100		3 4	82
+3 5	100		3 6	100		4 5	75		4 6	100		5 6	78
+;
+
+#Reactance of each line
+param b:=
+1 2	500		1 3 500		1 4	500		1 5	500		1 6	500
+2 3	500		2 4	500		2 5	500		2 6	500		3 4	500
+3 5	500		3 6	500		4 5	500		4 6	500		5 6	500
+;
+
+# Generating Costs
+param gencost :=
+1	15		2	0		3	10		4	0		5	0		6	20
+;
+
+#Penalty for Unfufiled Load
+param  shed :=
+1	112.5		2	115		3	120		4	110		5	112		6	0
+;
+
+param ref := 1;
+
+# Max Demand
+param demmax :=
+1	96		2	288		3	48		4	192		5	288		6	0
+;
+
+# Min Demand
+param demmin :=
+1	64		2	192		3	32		4	128		5	192		6	0
+;
+
+# Max Supply
+param supmax :=
+1	225		2	000		3	525		4	0		5	0		6	900
+;
+
+# Min Supply
+param supmin :=
+1	75		2	0		3	175		4	0		5	0		6	300
+;
