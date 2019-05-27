@@ -1,17 +1,18 @@
+############################################################
+#SubProblem
+
+#Create an abstract model in Pyomo for the Sub Problem
+#Input  -	An AMPL data type file
+#Output - 	Output to pyomo.opt.solve()
+#
+#See Readme, section on ruizSub for details
+###############################################################
+
 # -*- coding: utf-8 -*-
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
 import ruizC as RC
 import math
-
-
-############################################################
-#SubProblem
-
-#Create an abstract model in Pyomo for the Sub Problem
-#Input is expected to be .dat file
-#Will take x_star (binary) as a parameter
-############################################################
 
 mod = AbstractModel()
 opt = SolverFactory(RC.SOLVER)
