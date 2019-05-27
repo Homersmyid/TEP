@@ -1,3 +1,12 @@
+###############################################################
+#Master Problem Abstract Model
+#Create an abstract model in Pyomo for the Master Problem
+#Input  -	None
+#Output - 	Upper and Lower Bounds for the optimal value
+#			As well as the absolute and the realitive gap
+#See Readme, section on ruizMain for details
+###############################################################
+
 # -*- coding: utf-8 -*-
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
