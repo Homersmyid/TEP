@@ -1,9 +1,9 @@
 ###############################################################
 #Master Problem Abstract Model
 #Create an abstract model in Pyomo for the Master Problem
-#Input  -	An AMPL style data file
-#Output - 	Upper and Lower Bounds for the optimal value
-#			As well as the absolute and the realitive gap
+#Input  -	An AMPL data type file
+#Output - 	Output to pyomo.opt.solve()
+#
 #See Readme, section on ruizMain for details
 ###############################################################
 
