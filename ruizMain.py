@@ -1,3 +1,15 @@
+###############################################################
+#Main Version of Column-and-Constraint
+#To run a version of the column-and-constraint model introuced
+#by Ruiz and Conjego. It iterates through several versions of a
+#master and subproblem solve until they get within epsilon of
+#each other.
+#Input  -	None
+#Output - 	Upper and Lower Bounds for the optimal value
+#			As well as the absolute and the realitive gap
+#See Readme, section on ruizMain for details
+###############################################################
+
 # -*- coding: utf-8 -*-
 
 from __future__ import division
@@ -108,8 +120,6 @@ for k in range(1,STOP+1):
 	#imast.pprint()
 	'''
 	input()
-	
-
 
 	########################
 	#STEP K Sub roblem
