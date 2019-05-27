@@ -4,7 +4,7 @@
 #Input  -	An AMPL data type file
 #Output - 	Output to pyomo.opt.solve()
 #
-#See Readme, section on ruizMain for details
+#See Readme, section on ruizMaast for details
 ###############################################################
 
 # -*- coding: utf-8 -*-
