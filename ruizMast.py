@@ -27,7 +27,7 @@ opt.options['mipgap'] = RC.MIPGAP
 ###############################################################
 
 #Sets
-mod.N = 	Set()						#Nodes
+mod.N = 	Set()						#Nodes 
 mod.L = 	Set(within=mod.N*mod.N)		#Lines
 mod.P = 	Set(initialize=[])			#Subproblem Solves
 	#Updated every new run of the master
