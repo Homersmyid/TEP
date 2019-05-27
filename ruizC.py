@@ -1,6 +1,6 @@
 ###############################################################
 #Constants
-#Constants for the Constraint-and-Column method
+#Constants for the Constraint-and-Column method 
 #Input  -	None
 #Output -   None
 #See Readme, section on ruizC for details
