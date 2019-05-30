@@ -1,12 +1,27 @@
-############################################################
-#SubProblem
+#######################################################################
+#SubProblem Abstract Model
 
-#Create an abstract model in Pyomo for the Sub Problem
-#Input  -	An AMPL data type file
-#Output - 	Output to pyomo.opt.solve()
-#
-#See Readme, section on ruizSub for details
-###############################################################
+#This implements an abstract model in Pyomo of the column-and-constraint
+#method’s subproblem portion. The subproblem combines the two-level
+#non-linear problem into a single level linear problem.
+#In application, this represents producers both minimizing their hourly
+#costs and meeting demand for the worst-case possible realization of
+#uncertain parameters.
+#The method accomplishes this by linearizing with a “Big M” method and
+#applying the KKT conditions to replace the innermost minimization.
+#The scheme also includes an uncertainty budget to allow a modeler to
+#avoid overly conservative estimates.
+#See file SubTheory for a full description of the theory behind 
+#this model or a discussion of setting the uncertainty budgets.
+
+#Input– (From user) None
+#		(From main) X_star. The set of built lines from the subproblem.
+#		(From data file) AMPL style data for a concrete model.
+#			See docs/Input.pdf for more.
+
+#Output- (To main) Results of a Pyomo.opt.solve. 
+#				   Value of maximization as a possible upper bound
+#######################################################################
 
 # -*- coding: utf-8 -*-
 from pyomo.environ import *
@@ -333,6 +348,8 @@ mod.LagrangianThetaConstraint = Constraint(mod.N, rule=lag_theta)
 
 ##########
 #TO TEST
+
+#Uncomment to demonstrate the working of the model
 ##########
 '''
 isub = mod.create_instance(RC.DATA)
