@@ -1,6 +1,6 @@
 This is an example of a 24-bus problem as found in Ruiz and Conejo “Robust Transmission Expansion Planning.”
 
-See Picture for basic setup.
+See picture in 24Bus.png for basic setup.
 
 Still in progress.
 
