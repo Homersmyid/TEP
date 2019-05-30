@@ -1,5 +1,9 @@
-####TO TEST
-###############################
+##############################################################
+#This is instructions how to format the AMPL-style data file for input
+#into the algorithm.
+
+See Docs/Input.pdf for further information
+##############################################################
 
 # Max Capacity to use in M * x > trans
 param M := 66666666;
